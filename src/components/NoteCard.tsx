@@ -17,7 +17,7 @@ const NoteCard: React.FC<NoteCardProps> = ({ note }) => {
   const noteLabels = labels.filter(label => note.labelIds.includes(label.id));
   const formattedDate = format(new Date(note.createdAt), "MMM d, yyyy");
   
-  // Strip markdown characters for preview
+  // Improved markdown stripping for preview
   const stripMarkdown = (text: string) => {
     return text
       .replace(/\*\*(.*?)\*\*/g, '$1') // Bold
@@ -28,8 +28,9 @@ const NoteCard: React.FC<NoteCardProps> = ({ note }) => {
       .replace(/`(.*?)`/g, '$1')      // Code
       .replace(/```[\s\S]*?```/g, '') // Code blocks
       .replace(/>\s(.*)/g, '$1')      // Blockquotes
-      .replace(/- (.*)/g, '$1')       // List items
-      .replace(/\d+\. (.*)/g, '$1')   // Numbered list items
+      .replace(/^\* (.*)/gm, '$1')    // Unordered list items with asterisks
+      .replace(/^- (.*)/gm, '$1')     // Unordered list items with hyphens
+      .replace(/^\d+\. (.*)/gm, '$1') // Numbered list items
   };
 
   const handleNoteClick = () => {
