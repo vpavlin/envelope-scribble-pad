@@ -11,6 +11,12 @@ export type Comment = {
   createdAt: string;
 };
 
+export type AISummary = {
+  content: string;
+  generatedAt: string;
+  type: 'summary' | 'enhancement';
+};
+
 export type Note = {
   id: string;
   title: string;
@@ -20,6 +26,7 @@ export type Note = {
   createdAt: string;
   updatedAt: string;
   comments: Comment[];
+  aiSummaries?: AISummary[];
 };
 
 export type Envelope = {

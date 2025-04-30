@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useNotes } from "@/context/NotesContext";
 import CommentSection from "./CommentSection";
+import AISummary from "./AISummary";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -208,6 +209,15 @@ const NoteEditor = () => {
           </div>
         )}
       </div>
+      
+      {/* AI Summary Section */}
+      {!isEditing && (
+        <AISummary 
+          noteId={activeNote.id}
+          noteContent={activeNote.content}
+          summaries={activeNote.aiSummaries}
+        />
+      )}
       
       <CommentSection 
         noteId={activeNote.id}
