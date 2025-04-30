@@ -17,6 +17,14 @@ export type AISummary = {
   type: 'summary' | 'enhancement';
 };
 
+export type Attachment = {
+  id: string;
+  name: string;
+  type: string;
+  url: string;
+  createdAt: string;
+};
+
 export type Note = {
   id: string;
   title: string;
@@ -27,6 +35,7 @@ export type Note = {
   updatedAt: string;
   comments: Comment[];
   aiSummaries?: AISummary[];
+  attachments: Attachment[];
 };
 
 export type Envelope = {

@@ -1,5 +1,4 @@
-
-import { Note, Envelope, Label, Comment } from "@/types/note";
+import { Note, Envelope, Label, Comment, Attachment } from "@/types/note";
 
 const NOTES_KEY = "notes";
 const ENVELOPES_KEY = "envelopes";
@@ -98,6 +97,29 @@ export const deleteComment = (noteId: string, commentId: string): void => {
   }
 };
 
+// Attachments
+export const addAttachment = (noteId: string, attachment: Attachment): void => {
+  const notes = getNotes();
+  const noteIndex = notes.findIndex(note => note.id === noteId);
+  
+  if (noteIndex !== -1) {
+    notes[noteIndex].attachments = [...(notes[noteIndex].attachments || []), attachment];
+    saveNotes(notes);
+  }
+};
+
+export const deleteAttachment = (noteId: string, attachmentId: string): void => {
+  const notes = getNotes();
+  const noteIndex = notes.findIndex(note => note.id === noteId);
+  
+  if (noteIndex !== -1 && notes[noteIndex].attachments) {
+    notes[noteIndex].attachments = notes[noteIndex].attachments.filter(
+      attachment => attachment.id !== attachmentId
+    );
+    saveNotes(notes);
+  }
+};
+
 // Initialize with sample data if empty
 export const initializeStorage = (): void => {
   const notes = getNotes();
@@ -137,8 +159,16 @@ export const initializeStorage = (): void => {
             content: "You can add comments to notes too!",
             createdAt: currentDate
           }
-        ]
+        ],
+        attachments: []
       }
     ]);
+  } else {
+    // Ensure any existing notes have attachments array
+    const updatedNotes = notes.map(note => ({
+      ...note,
+      attachments: note.attachments || []
+    }));
+    saveNotes(updatedNotes);
   }
 };

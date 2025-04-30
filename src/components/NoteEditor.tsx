@@ -1,13 +1,15 @@
-import React, { useState, useEffect } from "react";
+
+import React, { useState, useEffect, useRef } from "react";
 import { useNotes } from "@/context/NotesContext";
 import CommentSection from "./CommentSection";
 import AISummary from "./AISummary";
+import AttachmentList from "./AttachmentList";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
-import { Calendar, Edit, Save, Trash2, Tag, ArrowLeft } from "lucide-react";
+import { Calendar, Edit, Save, Trash2, Tag, ArrowLeft, Image, Upload, FileImage } from "lucide-react";
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -20,6 +22,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useToast } from "@/hooks/use-toast";
 import ReactMarkdown from "react-markdown";
 
 const NoteEditor = () => {
@@ -29,15 +32,19 @@ const NoteEditor = () => {
     deleteNote, 
     envelopes,
     labels,
-    setActiveNoteId
+    setActiveNoteId,
+    addAttachment
   } = useNotes();
 
+  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [envelopeId, setEnvelopeId] = useState("");
   const [selectedLabelIds, setSelectedLabelIds] = useState<string[]>([]);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const isMobile = useIsMobile();
 
   useEffect(() => {
@@ -83,6 +90,66 @@ const NoteEditor = () => {
 
   const handleBackToList = () => {
     setActiveNoteId(null);
+  };
+
+  const handleFileInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      setIsUploading(true);
+      try {
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+          // Check file size (limit to 5MB)
+          if (file.size > 5 * 1024 * 1024) {
+            toast({
+              title: "File too large",
+              description: `${file.name} is larger than 5MB`,
+              variant: "destructive"
+            });
+            continue;
+          }
+
+          await addAttachment(activeNote.id, file);
+        }
+        toast({
+          title: "Attachment added",
+          description: files.length > 1 
+            ? `${files.length} files were uploaded successfully` 
+            : "File was uploaded successfully"
+        });
+      } catch (error) {
+        toast({
+          title: "Upload failed",
+          description: "There was a problem uploading your file(s)",
+          variant: "destructive"
+        });
+        console.error("Error uploading file:", error);
+      } finally {
+        setIsUploading(false);
+        // Reset the file input
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+      }
+    }
+  };
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleTakePhoto = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.accept = "image/*";
+      fileInputRef.current.capture = "environment";
+      fileInputRef.current.click();
+      // Reset after click
+      setTimeout(() => {
+        if (fileInputRef.current) {
+          fileInputRef.current.removeAttribute("capture");
+        }
+      }, 1000);
+    }
   };
 
   const formattedDate = format(new Date(activeNote.createdAt), "MMM d, yyyy h:mm a");
@@ -225,6 +292,45 @@ const NoteEditor = () => {
           </div>
         )}
       </div>
+      
+      {/* File Upload Interface */}
+      <div className="mb-4">
+        <input 
+          type="file" 
+          ref={fileInputRef} 
+          className="hidden" 
+          onChange={handleFileInputChange}
+          multiple
+        />
+        <div className="flex space-x-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleUploadClick}
+            disabled={isUploading}
+            className="flex items-center"
+          >
+            <Upload className="h-4 w-4 mr-1" />
+            <span>Upload File</span>
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleTakePhoto}
+            disabled={isUploading}
+            className="flex items-center"
+          >
+            <Image className="h-4 w-4 mr-1" />
+            <span>Take Photo</span>
+          </Button>
+        </div>
+      </div>
+      
+      {/* Attachment List */}
+      <AttachmentList 
+        noteId={activeNote.id} 
+        attachments={activeNote.attachments || []}
+      />
       
       {/* AI Summary Section */}
       {!isEditing && (

@@ -1,7 +1,6 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
-import { Note, Envelope, Label, Comment, SortOptions } from "@/types/note";
+import { Note, Envelope, Label, Comment, SortOptions, Attachment } from "@/types/note";
 import * as storage from "@/utils/storage";
 
 interface NotesContextProps {
@@ -34,6 +33,9 @@ interface NotesContextProps {
   
   addComment: (noteId: string, content: string) => void;
   deleteComment: (noteId: string, commentId: string) => void;
+  
+  addAttachment: (noteId: string, file: File) => Promise<Attachment>;
+  deleteAttachment: (noteId: string, attachmentId: string) => void;
   
   setSearchTerm: (term: string) => void;
   sortNotes: (sortOption: SortOptions) => void;
@@ -334,6 +336,70 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setNotes(updatedNotes);
   };
 
+  // Attachment operations
+  const addAttachment = async (noteId: string, file: File): Promise<Attachment> => {
+    // Create a local URL for the file
+    const fileUrl = URL.createObjectURL(file);
+    
+    const newAttachment: Attachment = {
+      id: uuidv4(),
+      name: file.name,
+      type: file.type,
+      url: fileUrl,
+      createdAt: new Date().toISOString()
+    };
+
+    const updatedNotes = notes.map(note => {
+      if (note.id === noteId) {
+        const updatedNote = {
+          ...note,
+          attachments: [...(note.attachments || []), newAttachment],
+          updatedAt: new Date().toISOString()
+        };
+        
+        if (activeNote?.id === noteId) {
+          setActiveNote(updatedNote);
+        }
+        
+        return updatedNote;
+      }
+      return note;
+    });
+
+    storage.saveNotes(updatedNotes);
+    setNotes(updatedNotes);
+    
+    return newAttachment;
+  };
+
+  const deleteAttachment = (noteId: string, attachmentId: string) => {
+    const updatedNotes = notes.map(note => {
+      if (note.id === noteId) {
+        // Find the attachment to revoke its URL
+        const attachmentToDelete = note.attachments?.find(a => a.id === attachmentId);
+        if (attachmentToDelete && attachmentToDelete.url.startsWith('blob:')) {
+          URL.revokeObjectURL(attachmentToDelete.url);
+        }
+        
+        const updatedNote = {
+          ...note,
+          attachments: (note.attachments || []).filter(a => a.id !== attachmentId),
+          updatedAt: new Date().toISOString()
+        };
+        
+        if (activeNote?.id === noteId) {
+          setActiveNote(updatedNote);
+        }
+        
+        return updatedNote;
+      }
+      return note;
+    });
+
+    storage.saveNotes(updatedNotes);
+    setNotes(updatedNotes);
+  };
+
   return (
     <NotesContext.Provider
       value={{
@@ -366,6 +432,9 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         
         addComment,
         deleteComment,
+        
+        addAttachment,
+        deleteAttachment,
         
         setSearchTerm,
         sortNotes

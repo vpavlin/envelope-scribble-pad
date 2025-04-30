@@ -2,7 +2,7 @@
 import React from "react";
 import { useNotes } from "@/context/NotesContext";
 import { Note } from "@/types/note";
-import { Calendar, MessageSquare } from "lucide-react";
+import { Calendar, MessageSquare, Paperclip } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -38,6 +38,8 @@ const NoteCard: React.FC<NoteCardProps> = ({ note }) => {
     setActiveNote(note);
   };
 
+  const attachmentsCount = note.attachments?.length || 0;
+
   return (
     <Card
       className={cn(
@@ -57,12 +59,21 @@ const NoteCard: React.FC<NoteCardProps> = ({ note }) => {
           <span>{formattedDate}</span>
         </div>
         
-        {note.comments.length > 0 && (
-          <div className="flex items-center">
-            <MessageSquare className="h-3 w-3 mr-1" />
-            <span>{note.comments.length}</span>
-          </div>
-        )}
+        <div className="flex items-center space-x-2">
+          {note.comments.length > 0 && (
+            <div className="flex items-center">
+              <MessageSquare className="h-3 w-3 mr-1" />
+              <span>{note.comments.length}</span>
+            </div>
+          )}
+          
+          {attachmentsCount > 0 && (
+            <div className="flex items-center">
+              <Paperclip className="h-3 w-3 mr-1" />
+              <span>{attachmentsCount}</span>
+            </div>
+          )}
+        </div>
       </div>
       
       {noteLabels.length > 0 && (
