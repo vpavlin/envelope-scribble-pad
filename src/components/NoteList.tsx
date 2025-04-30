@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNotes } from "@/context/NotesContext";
 import NoteCard from "./NoteCard";
@@ -24,6 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/sonner";
 import { getNoteSummary } from "@/utils/aiUtils";
+import ReactMarkdown from "react-markdown";
 
 const NoteList = () => {
   const { 
@@ -210,7 +210,9 @@ const NoteList = () => {
                 <p className="text-sm text-muted-foreground">Generating summary...</p>
               </div>
             ) : (
-              <div className="whitespace-pre-line">{envelopeSummary}</div>
+              <div className="prose max-w-none">
+                <ReactMarkdown>{envelopeSummary}</ReactMarkdown>
+              </div>
             )}
           </div>
           

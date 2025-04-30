@@ -33,7 +33,7 @@ interface ChatResponse {
 export const getNoteSummary = async (
   content: string, 
   apiKey: string, 
-  prompt: string = "Summarize this note in 2-3 bullet points:"
+  prompt: string = "Summarize this note in 2-3 bullet points (use markdown formatting):"
 ): Promise<string> => {
   try {
     // Set the Authorization header with the API key
@@ -45,7 +45,7 @@ export const getNoteSummary = async (
     const messages: ChatMessage[] = [
       {
         role: "system",
-        content: "You help users analyze and summarize notes. Be concise and insightful."
+        content: "You help users analyze and summarize notes. Be concise and insightful. Use markdown formatting to structure your responses - use bold, italics, bullet points, etc. as needed to highlight key information."
       },
       {
         role: "user",
@@ -79,5 +79,5 @@ export const getNoteEnhancement = async (
   apiKey: string
 ): Promise<string> => {
   return getNoteSummary(content, apiKey, 
-    "Provide 2-3 suggestions to enhance or expand on this note:");
+    "Provide 2-3 suggestions to enhance or expand on this note (use markdown formatting):");
 };

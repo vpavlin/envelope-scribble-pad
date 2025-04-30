@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { format } from "date-fns";
 import { Trash2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import ReactMarkdown from "react-markdown";
 
 interface CommentSectionProps {
   noteId: string;
@@ -33,7 +34,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({ noteId, comments }) => 
         <Textarea
           value={commentContent}
           onChange={(e) => setCommentContent(e.target.value)}
-          placeholder="Add a comment..."
+          placeholder="Add a comment... (supports markdown)"
           className="resize-none mr-2"
           rows={2}
         />
@@ -64,7 +65,9 @@ const CommentSection: React.FC<CommentSectionProps> = ({ noteId, comments }) => 
                     <Trash2 className="h-3 w-3" />
                   </Button>
                 </div>
-                <p className="text-sm">{comment.content}</p>
+                <div className="text-sm prose-sm prose max-w-none">
+                  <ReactMarkdown>{comment.content}</ReactMarkdown>
+                </div>
               </div>
             ))}
           </div>

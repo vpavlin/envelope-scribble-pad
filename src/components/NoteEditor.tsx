@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNotes } from "@/context/NotesContext";
 import CommentSection from "./CommentSection";
@@ -21,6 +20,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useIsMobile } from "@/hooks/use-mobile";
+import ReactMarkdown from "react-markdown";
 
 const NoteEditor = () => {
   const { 
@@ -217,13 +217,11 @@ const NoteEditor = () => {
             value={content}
             onChange={(e) => setContent(e.target.value)}
             className="resize-none h-full"
-            placeholder="Note content"
+            placeholder="Note content (supports markdown)"
           />
         ) : (
           <div className="prose max-w-none">
-            {activeNote.content.split("\n").map((paragraph, idx) => (
-              <p key={idx}>{paragraph}</p>
-            ))}
+            <ReactMarkdown>{activeNote.content}</ReactMarkdown>
           </div>
         )}
       </div>

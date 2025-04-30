@@ -16,6 +16,21 @@ const NoteCard: React.FC<NoteCardProps> = ({ note }) => {
 
   const noteLabels = labels.filter(label => note.labelIds.includes(label.id));
   const formattedDate = format(new Date(note.createdAt), "MMM d, yyyy");
+  
+  // Strip markdown characters for preview
+  const stripMarkdown = (text: string) => {
+    return text
+      .replace(/\*\*(.*?)\*\*/g, '$1') // Bold
+      .replace(/\*(.*?)\*/g, '$1')     // Italic
+      .replace(/\[(.*?)\]\(.*?\)/g, '$1') // Links
+      .replace(/#+\s(.*)/g, '$1')     // Headers
+      .replace(/~~(.*?)~~/g, '$1')    // Strikethrough
+      .replace(/`(.*?)`/g, '$1')      // Code
+      .replace(/```[\s\S]*?```/g, '') // Code blocks
+      .replace(/>\s(.*)/g, '$1')      // Blockquotes
+      .replace(/- (.*)/g, '$1')       // List items
+      .replace(/\d+\. (.*)/g, '$1')   // Numbered list items
+  };
 
   const handleNoteClick = () => {
     setActiveNoteId(note.id);
@@ -32,7 +47,7 @@ const NoteCard: React.FC<NoteCardProps> = ({ note }) => {
     >
       <h3 className="font-medium text-lg mb-2 line-clamp-1">{note.title}</h3>
       <p className="text-muted-foreground line-clamp-2 text-sm mb-3">
-        {note.content.replace(/<[^>]*>/g, '')}
+        {stripMarkdown(note.content)}
       </p>
       
       <div className="flex items-center justify-between text-xs text-muted-foreground">

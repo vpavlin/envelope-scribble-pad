@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +16,7 @@ import {
   DialogFooter
 } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/sonner";
+import ReactMarkdown from "react-markdown";
 
 interface AISummaryProps {
   noteId: string;
@@ -125,7 +125,9 @@ const AISummary: React.FC<AISummaryProps> = ({ noteId, noteContent, summaries = 
               <div className="text-xs text-muted-foreground mb-1">
                 {summary.type === 'summary' ? 'Summary' : 'Suggestions'} • {new Date(summary.generatedAt).toLocaleDateString()}
               </div>
-              <div className="whitespace-pre-line">{summary.content}</div>
+              <div className="prose-sm prose max-w-none">
+                <ReactMarkdown>{summary.content}</ReactMarkdown>
+              </div>
             </Card>
           ))}
         </div>
