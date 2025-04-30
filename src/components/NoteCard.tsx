@@ -12,10 +12,15 @@ interface NoteCardProps {
 }
 
 const NoteCard: React.FC<NoteCardProps> = ({ note }) => {
-  const { setActiveNote, labels, activeNote } = useNotes();
+  const { setActiveNote, labels, activeNote, setActiveNoteId } = useNotes();
 
   const noteLabels = labels.filter(label => note.labelIds.includes(label.id));
   const formattedDate = format(new Date(note.createdAt), "MMM d, yyyy");
+
+  const handleNoteClick = () => {
+    setActiveNoteId(note.id);
+    setActiveNote(note);
+  };
 
   return (
     <Card
@@ -23,7 +28,7 @@ const NoteCard: React.FC<NoteCardProps> = ({ note }) => {
         "p-4 cursor-pointer hover:shadow-md transition-shadow",
         activeNote?.id === note.id ? "ring-1 ring-primary" : ""
       )}
-      onClick={() => setActiveNote(note)}
+      onClick={handleNoteClick}
     >
       <h3 className="font-medium text-lg mb-2 line-clamp-1">{note.title}</h3>
       <p className="text-muted-foreground line-clamp-2 text-sm mb-3">
