@@ -41,7 +41,7 @@ const deriveContentTopic = (password: string): string => {
   }
   
   // Use the hash to create a unique content topic
-  return `/notes/${Math.abs(hash).toString(16).substring(0, 8)}/sync/json`;
+  return `/notes/1/${Math.abs(hash).toString(16).substring(0, 20)}/json`;
 };
 
 export const generateSecurePassword = (): string => {
