@@ -15,6 +15,13 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { SortOptions } from "@/types/note";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem
+} from "@/components/ui/dropdown-menu";
+import { Check, ChevronDown } from "lucide-react";
 
 const NoteList = () => {
   const { 
@@ -28,16 +35,24 @@ const NoteList = () => {
 
   const isMobile = useIsMobile();
   const [sortOption, setSortOption] = useState<SortOptions>("dateNewest");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const handleAddNote = () => {
     const envelopeId = activeEnvelopeId || (envelopes.length > 0 ? envelopes[0].id : "");
     addNote("New Note", "", envelopeId, []);
   };
 
-  const handleSortChange = (value: string) => {
-    setSortOption(value as SortOptions);
-    sortNotes(value as SortOptions);
+  const handleSortChange = (value: SortOptions) => {
+    setSortOption(value);
+    sortNotes(value);
   };
+
+  const sortOptions = [
+    { value: "dateNewest", label: "Date (Newest)" },
+    { value: "dateOldest", label: "Date (Oldest)" },
+    { value: "envelope", label: "Envelope" },
+    { value: "latestComment", label: "Latest Comment" }
+  ];
 
   const currentEnvelope = activeEnvelopeId 
     ? envelopes.find(env => env.id === activeEnvelopeId)?.name 
@@ -58,18 +73,37 @@ const NoteList = () => {
                 {filteredNotes.length} note{filteredNotes.length !== 1 ? "s" : ""}
               </span>
               
-              <div className="relative" style={{ zIndex: 100 }}>
-                <Select value={sortOption} onValueChange={handleSortChange}>
-                  <SelectTrigger className="w-[180px] h-8">
-                    <SelectValue placeholder="Sort by" />
-                  </SelectTrigger>
-                  <SelectContent position="popper" side="bottom" align="start" sideOffset={5} className="z-[999]">
-                    <SelectItem value="dateNewest">Date (Newest)</SelectItem>
-                    <SelectItem value="dateOldest">Date (Oldest)</SelectItem>
-                    <SelectItem value="envelope">Envelope</SelectItem>
-                    <SelectItem value="latestComment">Latest Comment</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="relative" onClick={(e) => e.stopPropagation()}>
+                <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
+                  <DropdownMenuTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="flex items-center justify-between w-[180px] h-8"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <span>
+                        {sortOptions.find(option => option.value === sortOption)?.label || "Sort by"}
+                      </span>
+                      <ChevronDown className="h-4 w-4 opacity-50" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" sideOffset={5} className="w-[180px]">
+                    {sortOptions.map((option) => (
+                      <DropdownMenuItem 
+                        key={option.value}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSortChange(option.value as SortOptions);
+                        }}
+                        className="flex items-center justify-between"
+                      >
+                        {option.label}
+                        {sortOption === option.value && <Check className="h-4 w-4" />}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
             
@@ -77,14 +111,17 @@ const NoteList = () => {
               variant="outline" 
               size="sm" 
               className="flex items-center"
-              onClick={handleAddNote}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleAddNote();
+              }}
             >
               <Plus className="h-4 w-4 mr-1" />
               New Note
             </Button>
           </div>
           
-          <ScrollArea className="flex-grow relative" style={{ zIndex: 1 }}>
+          <ScrollArea className="flex-grow relative">
             <div className="grid gap-2">
               {filteredNotes.length > 0 ? (
                 filteredNotes.map(note => (
