@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { initializeWaku, getSyncConfig, setSyncConfig, generateSecurePassword } from "@/utils/wakuSync";
 
-import QRCode from "qrcode.react";
+import { QRCodeSVG } from "qrcode.react";
 
 const Settings = () => {
   const [apiKey, setApiKey] = useState("");
@@ -204,11 +204,10 @@ const Settings = () => {
                           <DialogTitle>Sync Password QR Code</DialogTitle>
                         </DialogHeader>
                         <div className="flex flex-col items-center justify-center p-6">
-                          <QRCode 
+                          <QRCodeSVG 
                             value={syncPassword} 
                             size={200} 
                             level="H"
-                            renderAs="svg"
                           />
                           <p className="mt-4 text-center text-sm text-muted-foreground">
                             Scan this QR code on another device to enter the same sync password
