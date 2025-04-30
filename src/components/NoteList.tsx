@@ -58,12 +58,12 @@ const NoteList = () => {
                 {filteredNotes.length} note{filteredNotes.length !== 1 ? "s" : ""}
               </span>
               
-              <div className="relative">
+              <div className="relative" style={{ zIndex: 100 }}>
                 <Select value={sortOption} onValueChange={handleSortChange}>
                   <SelectTrigger className="w-[180px] h-8">
                     <SelectValue placeholder="Sort by" />
                   </SelectTrigger>
-                  <SelectContent className="z-50">
+                  <SelectContent position="popper" side="bottom" align="start" sideOffset={5} className="z-[999]">
                     <SelectItem value="dateNewest">Date (Newest)</SelectItem>
                     <SelectItem value="dateOldest">Date (Oldest)</SelectItem>
                     <SelectItem value="envelope">Envelope</SelectItem>
@@ -84,7 +84,7 @@ const NoteList = () => {
             </Button>
           </div>
           
-          <ScrollArea className="flex-grow">
+          <ScrollArea className="flex-grow relative" style={{ zIndex: 1 }}>
             <div className="grid gap-2">
               {filteredNotes.length > 0 ? (
                 filteredNotes.map(note => (
