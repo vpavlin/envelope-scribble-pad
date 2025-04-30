@@ -1,9 +1,10 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
-import { Note, Envelope, Label, Comment, SortOptions, Attachment } from "@/types/note";
+import { Note, Envelope, Label, Comment, SortOptions, Attachment, MessageType } from "@/types/note";
 import * as storage from "@/utils/storage";
 import * as indexedDb from "@/utils/indexedDb";
+import { emit, subscribe, isWakuInitialized } from "@/utils/wakuSync";
+import { toast } from "@/components/ui/sonner";
 
 interface NotesContextProps {
   notes: Note[];
@@ -73,6 +74,7 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const savedDefaultEnvelope = localStorage.getItem('defaultEnvelopeId');
     return savedDefaultEnvelope;
   });
+  const [syncProcessingIds] = useState<Set<string>>(new Set());
 
   // Initialize data on component mount
   useEffect(() => {
@@ -97,6 +99,113 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     
     initializeData();
   }, []);
+
+  // Initialize Waku subscriptions
+  useEffect(() => {
+    if (isWakuInitialized()) {
+      // Subscribe to note events
+      subscribe<Note>(MessageType.NOTE_ADDED, (note) => {
+        if (!syncProcessingIds.has(note.id)) {
+          setNotes(prevNotes => {
+            // Only add if the note doesn't already exist
+            if (!prevNotes.some(n => n.id === note.id)) {
+              storage.addNote(note);
+              return [...prevNotes, note];
+            }
+            return prevNotes;
+          });
+        }
+      });
+
+      subscribe<Note>(MessageType.NOTE_UPDATED, (note) => {
+        if (!syncProcessingIds.has(note.id)) {
+          setNotes(prevNotes => {
+            const updatedNotes = prevNotes.map(n => n.id === note.id ? note : n);
+            storage.updateNote(note);
+            return updatedNotes;
+          });
+        }
+      });
+
+      subscribe<string>(MessageType.NOTE_DELETED, (noteId) => {
+        if (!syncProcessingIds.has(noteId)) {
+          setNotes(prevNotes => {
+            const filteredNotes = prevNotes.filter(n => n.id !== noteId);
+            storage.deleteNote(noteId);
+            return filteredNotes;
+          });
+        }
+      });
+
+      // Subscribe to envelope events
+      subscribe<Envelope>(MessageType.ENVELOPE_ADDED, (envelope) => {
+        if (!syncProcessingIds.has(envelope.id)) {
+          setEnvelopes(prevEnvelopes => {
+            // Only add if the envelope doesn't already exist
+            if (!prevEnvelopes.some(e => e.id === envelope.id)) {
+              storage.addEnvelope(envelope);
+              return [...prevEnvelopes, envelope];
+            }
+            return prevEnvelopes;
+          });
+        }
+      });
+
+      subscribe<Envelope>(MessageType.ENVELOPE_UPDATED, (envelope) => {
+        if (!syncProcessingIds.has(envelope.id)) {
+          setEnvelopes(prevEnvelopes => {
+            const updatedEnvelopes = prevEnvelopes.map(e => e.id === envelope.id ? envelope : e);
+            storage.updateEnvelope(envelope);
+            return updatedEnvelopes;
+          });
+        }
+      });
+
+      subscribe<string>(MessageType.ENVELOPE_DELETED, (envelopeId) => {
+        if (!syncProcessingIds.has(envelopeId)) {
+          setEnvelopes(prevEnvelopes => {
+            const filteredEnvelopes = prevEnvelopes.filter(e => e.id !== envelopeId);
+            storage.deleteEnvelope(envelopeId);
+            return filteredEnvelopes;
+          });
+        }
+      });
+
+      // Subscribe to label events
+      subscribe<Label>(MessageType.LABEL_ADDED, (label) => {
+        if (!syncProcessingIds.has(label.id)) {
+          setLabels(prevLabels => {
+            // Only add if the label doesn't already exist
+            if (!prevLabels.some(l => l.id === label.id)) {
+              storage.addLabel(label);
+              return [...prevLabels, label];
+            }
+            return prevLabels;
+          });
+        }
+      });
+
+      subscribe<Label>(MessageType.LABEL_UPDATED, (label) => {
+        if (!syncProcessingIds.has(label.id)) {
+          setLabels(prevLabels => {
+            const updatedLabels = prevLabels.map(l => l.id === label.id ? label : l);
+            storage.updateLabel(label);
+            return updatedLabels;
+          });
+        }
+      });
+
+      subscribe<string>(MessageType.LABEL_DELETED, (labelId) => {
+        if (!syncProcessingIds.has(labelId)) {
+          setLabels(prevLabels => {
+            const filteredLabels = prevLabels.filter(l => l.id !== labelId);
+            storage.deleteLabel(labelId);
+            return filteredLabels;
+          });
+        }
+      });
+    }
+  }, [syncProcessingIds]);
 
   // Save sort option to localStorage whenever it changes
   useEffect(() => {
@@ -124,7 +233,7 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [activeNoteId, notes]);
 
-  // Filter notes based on active envelope and search term
+  // Filter and sort notes
   let filteredNotes = notes.filter(note => {
     const matchesEnvelope = activeEnvelopeId ? note.envelopeId === activeEnvelopeId : true;
     const matchesSearch = searchTerm
@@ -184,32 +293,62 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       attachments: []
     };
 
+    // Add to local storage
     await storage.addNote(newNote);
     setNotes(prev => [...prev, newNote]);
     setActiveNote(newNote);
     setActiveNoteId(newNote.id);
+    
+    // Sync to other devices
+    if (isWakuInitialized()) {
+      syncProcessingIds.add(newNote.id);
+      try {
+        await emit(MessageType.NOTE_ADDED, newNote);
+      } catch (error) {
+        console.error("Error syncing new note:", error);
+        toast.error("Failed to sync new note to other devices");
+      } finally {
+        syncProcessingIds.delete(newNote.id);
+      }
+    }
   };
 
   const updateNote = async (id: string, updates: Partial<Omit<Note, "id">>) => {
+    let updatedNote: Note | null = null;
+    
     const updatedNotes = notes.map(note => {
       if (note.id === id) {
-        const updatedNote = {
+        const noteWithUpdates = {
           ...note,
           ...updates,
           updatedAt: new Date().toISOString()
         };
         
         if (activeNote?.id === id) {
-          setActiveNote(updatedNote);
+          setActiveNote(noteWithUpdates);
         }
         
-        return updatedNote;
+        updatedNote = noteWithUpdates;
+        return noteWithUpdates;
       }
       return note;
     });
 
     await storage.saveNotes(updatedNotes);
     setNotes(updatedNotes);
+    
+    // Sync update to other devices
+    if (isWakuInitialized() && updatedNote) {
+      syncProcessingIds.add(id);
+      try {
+        await emit(MessageType.NOTE_UPDATED, updatedNote);
+      } catch (error) {
+        console.error("Error syncing note update:", error);
+        toast.error("Failed to sync note update to other devices");
+      } finally {
+        syncProcessingIds.delete(id);
+      }
+    }
   };
 
   const deleteNote = async (id: string) => {
@@ -219,6 +358,19 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (activeNote?.id === id) {
       setActiveNote(null);
       setActiveNoteId(null);
+    }
+    
+    // Sync deletion to other devices
+    if (isWakuInitialized()) {
+      syncProcessingIds.add(id);
+      try {
+        await emit(MessageType.NOTE_DELETED, id);
+      } catch (error) {
+        console.error("Error syncing note deletion:", error);
+        toast.error("Failed to sync note deletion to other devices");
+      } finally {
+        syncProcessingIds.delete(id);
+      }
     }
   };
 
@@ -231,15 +383,42 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     await storage.addEnvelope(newEnvelope);
     setEnvelopes([...envelopes, newEnvelope]);
+    
+    // Sync to other devices
+    if (isWakuInitialized()) {
+      syncProcessingIds.add(newEnvelope.id);
+      try {
+        await emit(MessageType.ENVELOPE_ADDED, newEnvelope);
+      } catch (error) {
+        console.error("Error syncing new envelope:", error);
+        toast.error("Failed to sync new envelope to other devices");
+      } finally {
+        syncProcessingIds.delete(newEnvelope.id);
+      }
+    }
   };
 
   const updateEnvelope = async (id: string, name: string) => {
+    const updatedEnvelope = { id, name };
     const updatedEnvelopes = envelopes.map(envelope =>
-      envelope.id === id ? { ...envelope, name } : envelope
+      envelope.id === id ? updatedEnvelope : envelope
     );
 
     await storage.saveEnvelopes(updatedEnvelopes);
     setEnvelopes(updatedEnvelopes);
+    
+    // Sync update to other devices
+    if (isWakuInitialized()) {
+      syncProcessingIds.add(id);
+      try {
+        await emit(MessageType.ENVELOPE_UPDATED, updatedEnvelope);
+      } catch (error) {
+        console.error("Error syncing envelope update:", error);
+        toast.error("Failed to sync envelope update to other devices");
+      } finally {
+        syncProcessingIds.delete(id);
+      }
+    }
   };
 
   const deleteEnvelope = async (id: string) => {
@@ -261,6 +440,19 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     
     await storage.saveNotes(updatedNotes);
     setNotes(updatedNotes);
+    
+    // Sync deletion to other devices
+    if (isWakuInitialized()) {
+      syncProcessingIds.add(id);
+      try {
+        await emit(MessageType.ENVELOPE_DELETED, id);
+      } catch (error) {
+        console.error("Error syncing envelope deletion:", error);
+        toast.error("Failed to sync envelope deletion to other devices");
+      } finally {
+        syncProcessingIds.delete(id);
+      }
+    }
   };
 
   // Label operations
@@ -273,15 +465,42 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     await storage.addLabel(newLabel);
     setLabels([...labels, newLabel]);
+    
+    // Sync to other devices
+    if (isWakuInitialized()) {
+      syncProcessingIds.add(newLabel.id);
+      try {
+        await emit(MessageType.LABEL_ADDED, newLabel);
+      } catch (error) {
+        console.error("Error syncing new label:", error);
+        toast.error("Failed to sync new label to other devices");
+      } finally {
+        syncProcessingIds.delete(newLabel.id);
+      }
+    }
   };
 
   const updateLabel = async (id: string, name: string, color: string) => {
+    const updatedLabel = { id, name, color };
     const updatedLabels = labels.map(label =>
-      label.id === id ? { ...label, name, color } : label
+      label.id === id ? updatedLabel : label
     );
 
     await storage.saveLabels(updatedLabels);
     setLabels(updatedLabels);
+    
+    // Sync update to other devices
+    if (isWakuInitialized()) {
+      syncProcessingIds.add(id);
+      try {
+        await emit(MessageType.LABEL_UPDATED, updatedLabel);
+      } catch (error) {
+        console.error("Error syncing label update:", error);
+        toast.error("Failed to sync label update to other devices");
+      } finally {
+        syncProcessingIds.delete(id);
+      }
+    }
   };
 
   const deleteLabel = async (id: string) => {
@@ -303,6 +522,19 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     
     await storage.saveNotes(updatedNotes);
     setNotes(updatedNotes);
+    
+    // Sync deletion to other devices
+    if (isWakuInitialized()) {
+      syncProcessingIds.add(id);
+      try {
+        await emit(MessageType.LABEL_DELETED, id);
+      } catch (error) {
+        console.error("Error syncing label deletion:", error);
+        toast.error("Failed to sync label deletion to other devices");
+      } finally {
+        syncProcessingIds.delete(id);
+      }
+    }
   };
 
   // Comment operations

@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { NotesProvider } from "@/context/NotesContext";
 import Sidebar from "@/components/Sidebar";
 import NoteList from "@/components/NoteList";
@@ -7,6 +7,8 @@ import NoteEditor from "@/components/NoteEditor";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useNotes } from "@/context/NotesContext";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
+import { getSyncConfig, initializeWaku } from "@/utils/wakuSync";
+import { toast } from "@/components/ui/sonner";
 
 // Component to handle the note view with context access
 const NoteView = () => {
@@ -44,6 +46,26 @@ const NoteView = () => {
 // Main Index component
 const Index = () => {
   const isMobile = useIsMobile();
+  
+  useEffect(() => {
+    // Check if sync is enabled and initialize Waku
+    const initializeSync = async () => {
+      const syncConfig = getSyncConfig();
+      if (syncConfig.enabled && syncConfig.password) {
+        try {
+          const success = await initializeWaku(syncConfig.password);
+          if (!success) {
+            toast.error("Failed to initialize cross-device sync");
+          }
+        } catch (error) {
+          console.error("Error initializing Waku:", error);
+          toast.error("Error initializing cross-device sync");
+        }
+      }
+    };
+    
+    initializeSync();
+  }, []);
 
   return (
     <NotesProvider>

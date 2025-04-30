@@ -45,3 +45,15 @@ export type Envelope = {
 };
 
 export type SortOptions = "dateNewest" | "dateOldest" | "envelope" | "latestComment";
+
+export enum MessageType {
+  NOTE_ADDED = "note_added",
+  NOTE_UPDATED = "note_updated",
+  NOTE_DELETED = "note_deleted",
+  ENVELOPE_ADDED = "envelope_added",
+  ENVELOPE_UPDATED = "envelope_updated",
+  ENVELOPE_DELETED = "envelope_deleted",
+  LABEL_ADDED = "label_added",
+  LABEL_UPDATED = "label_updated",
+  LABEL_DELETED = "label_deleted",
+}
