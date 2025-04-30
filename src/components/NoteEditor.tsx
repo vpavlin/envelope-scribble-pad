@@ -33,7 +33,8 @@ const NoteEditor = () => {
     envelopes,
     labels,
     setActiveNoteId,
-    addAttachment
+    addAttachment,
+    isLoading
   } = useNotes();
 
   const { toast } = useToast();
@@ -57,6 +58,14 @@ const NoteEditor = () => {
     }
   }, [activeNote]);
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full text-muted-foreground">
+        Loading...
+      </div>
+    );
+  }
+
   if (!activeNote) {
     return (
       <div className="flex items-center justify-center h-full text-muted-foreground">
@@ -65,8 +74,8 @@ const NoteEditor = () => {
     );
   }
 
-  const handleSave = () => {
-    updateNote(activeNote.id, {
+  const handleSave = async () => {
+    await updateNote(activeNote.id, {
       title,
       content,
       envelopeId,
@@ -75,8 +84,8 @@ const NoteEditor = () => {
     setIsEditing(false);
   };
 
-  const handleDelete = () => {
-    deleteNote(activeNote.id);
+  const handleDelete = async () => {
+    await deleteNote(activeNote.id);
     setIsDeleteDialogOpen(false);
   };
 

@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { Note, Envelope, Label, Comment, SortOptions, Attachment } from "@/types/note";
 import * as storage from "@/utils/storage";
+import * as indexedDb from "@/utils/indexedDb";
 
 interface NotesContextProps {
   notes: Note[];
@@ -15,28 +16,29 @@ interface NotesContextProps {
   filteredNotes: Note[];
   sortOption: SortOptions;
   defaultEnvelopeId: string | null;
+  isLoading: boolean;
   
-  addNote: (title: string, content: string, envelopeId: string, labelIds: string[]) => void;
-  updateNote: (id: string, updates: Partial<Omit<Note, "id">>) => void;
-  deleteNote: (id: string) => void;
+  addNote: (title: string, content: string, envelopeId: string, labelIds: string[]) => Promise<void>;
+  updateNote: (id: string, updates: Partial<Omit<Note, "id">>) => Promise<void>;
+  deleteNote: (id: string) => Promise<void>;
   setActiveNote: (note: Note | null) => void;
   setActiveNoteId: (id: string | null) => void;
   
-  addEnvelope: (name: string) => void;
-  updateEnvelope: (id: string, name: string) => void;
-  deleteEnvelope: (id: string) => void;
+  addEnvelope: (name: string) => Promise<void>;
+  updateEnvelope: (id: string, name: string) => Promise<void>;
+  deleteEnvelope: (id: string) => Promise<void>;
   setActiveEnvelopeId: (id: string | null) => void;
   setDefaultEnvelopeId: (id: string | null) => void;
   
-  addLabel: (name: string, color: string) => void;
-  updateLabel: (id: string, name: string, color: string) => void;
-  deleteLabel: (id: string) => void;
+  addLabel: (name: string, color: string) => Promise<void>;
+  updateLabel: (id: string, name: string, color: string) => Promise<void>;
+  deleteLabel: (id: string) => Promise<void>;
   
-  addComment: (noteId: string, content: string) => void;
-  deleteComment: (noteId: string, commentId: string) => void;
+  addComment: (noteId: string, content: string) => Promise<void>;
+  deleteComment: (noteId: string, commentId: string) => Promise<void>;
   
   addAttachment: (noteId: string, file: File) => Promise<Attachment>;
-  deleteAttachment: (noteId: string, attachmentId: string) => void;
+  deleteAttachment: (noteId: string, attachmentId: string) => Promise<void>;
   
   setSearchTerm: (term: string) => void;
   sortNotes: (sortOption: SortOptions) => void;
@@ -60,6 +62,7 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [activeEnvelopeId, setActiveEnvelopeId] = useState<string | null>(null);
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
   const [sortOption, setSortOption] = useState<SortOptions>(() => {
     // Try to load sort option from localStorage
     const savedSortOption = localStorage.getItem('sortOption');
@@ -73,11 +76,26 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Initialize data on component mount
   useEffect(() => {
-    storage.initializeStorage();
+    const initializeData = async () => {
+      setIsLoading(true);
+      try {
+        await storage.initializeStorage();
+        
+        const loadedNotes = await storage.getNotes();
+        const loadedEnvelopes = await storage.getEnvelopes();
+        const loadedLabels = await storage.getLabels();
+        
+        setNotes(loadedNotes);
+        setEnvelopes(loadedEnvelopes);
+        setLabels(loadedLabels);
+      } catch (error) {
+        console.error("Error initializing data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
     
-    setNotes(storage.getNotes());
-    setEnvelopes(storage.getEnvelopes());
-    setLabels(storage.getLabels());
+    initializeData();
   }, []);
 
   // Save sort option to localStorage whenever it changes
@@ -149,7 +167,7 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   });
 
   // Note operations
-  const addNote = (title: string, content: string, envelopeId: string, labelIds: string[]) => {
+  const addNote = async (title: string, content: string, envelopeId: string, labelIds: string[]) => {
     // Use the default envelope if one isn't provided but a default is set
     const finalEnvelopeId = envelopeId || (defaultEnvelopeId || "");
     
@@ -163,16 +181,16 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       createdAt: now,
       updatedAt: now,
       comments: [],
-      attachments: [] // Add the attachments property as an empty array
+      attachments: []
     };
 
-    storage.addNote(newNote);
-    setNotes([...notes, newNote]);
+    await storage.addNote(newNote);
+    setNotes(prev => [...prev, newNote]);
     setActiveNote(newNote);
     setActiveNoteId(newNote.id);
   };
 
-  const updateNote = (id: string, updates: Partial<Omit<Note, "id">>) => {
+  const updateNote = async (id: string, updates: Partial<Omit<Note, "id">>) => {
     const updatedNotes = notes.map(note => {
       if (note.id === id) {
         const updatedNote = {
@@ -190,12 +208,12 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return note;
     });
 
-    storage.saveNotes(updatedNotes);
+    await storage.saveNotes(updatedNotes);
     setNotes(updatedNotes);
   };
 
-  const deleteNote = (id: string) => {
-    storage.deleteNote(id);
+  const deleteNote = async (id: string) => {
+    await storage.deleteNote(id);
     setNotes(notes.filter(note => note.id !== id));
     
     if (activeNote?.id === id) {
@@ -205,27 +223,27 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   // Envelope operations
-  const addEnvelope = (name: string) => {
+  const addEnvelope = async (name: string) => {
     const newEnvelope: Envelope = {
       id: uuidv4(),
       name
     };
 
-    storage.addEnvelope(newEnvelope);
+    await storage.addEnvelope(newEnvelope);
     setEnvelopes([...envelopes, newEnvelope]);
   };
 
-  const updateEnvelope = (id: string, name: string) => {
+  const updateEnvelope = async (id: string, name: string) => {
     const updatedEnvelopes = envelopes.map(envelope =>
       envelope.id === id ? { ...envelope, name } : envelope
     );
 
-    storage.saveEnvelopes(updatedEnvelopes);
+    await storage.saveEnvelopes(updatedEnvelopes);
     setEnvelopes(updatedEnvelopes);
   };
 
-  const deleteEnvelope = (id: string) => {
-    storage.deleteEnvelope(id);
+  const deleteEnvelope = async (id: string) => {
+    await storage.deleteEnvelope(id);
     setEnvelopes(envelopes.filter(envelope => envelope.id !== id));
     
     if (activeEnvelopeId === id) {
@@ -241,33 +259,33 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return note;
     });
     
-    storage.saveNotes(updatedNotes);
+    await storage.saveNotes(updatedNotes);
     setNotes(updatedNotes);
   };
 
   // Label operations
-  const addLabel = (name: string, color: string) => {
+  const addLabel = async (name: string, color: string) => {
     const newLabel: Label = {
       id: uuidv4(),
       name,
       color
     };
 
-    storage.addLabel(newLabel);
+    await storage.addLabel(newLabel);
     setLabels([...labels, newLabel]);
   };
 
-  const updateLabel = (id: string, name: string, color: string) => {
+  const updateLabel = async (id: string, name: string, color: string) => {
     const updatedLabels = labels.map(label =>
       label.id === id ? { ...label, name, color } : label
     );
 
-    storage.saveLabels(updatedLabels);
+    await storage.saveLabels(updatedLabels);
     setLabels(updatedLabels);
   };
 
-  const deleteLabel = (id: string) => {
-    storage.deleteLabel(id);
+  const deleteLabel = async (id: string) => {
+    await storage.deleteLabel(id);
     setLabels(labels.filter(label => label.id !== id));
     
     // Remove this label from any notes that have it
@@ -283,12 +301,12 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return note;
     });
     
-    storage.saveNotes(updatedNotes);
+    await storage.saveNotes(updatedNotes);
     setNotes(updatedNotes);
   };
 
   // Comment operations
-  const addComment = (noteId: string, content: string) => {
+  const addComment = async (noteId: string, content: string) => {
     const newComment: Comment = {
       id: uuidv4(),
       content,
@@ -312,11 +330,11 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return note;
     });
 
-    storage.saveNotes(updatedNotes);
+    await storage.saveNotes(updatedNotes);
     setNotes(updatedNotes);
   };
 
-  const deleteComment = (noteId: string, commentId: string) => {
+  const deleteComment = async (noteId: string, commentId: string) => {
     const updatedNotes = notes.map(note => {
       if (note.id === noteId) {
         const updatedNote = {
@@ -334,12 +352,15 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return note;
     });
 
-    storage.saveNotes(updatedNotes);
+    await storage.saveNotes(updatedNotes);
     setNotes(updatedNotes);
   };
 
   // Attachment operations
   const addAttachment = async (noteId: string, file: File): Promise<Attachment> => {
+    // Read file content as base64
+    const fileContent = await indexedDb.blobToBase64(file);
+    
     // Create a local URL for the file
     const fileUrl = URL.createObjectURL(file);
     
@@ -348,6 +369,7 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       name: file.name,
       type: file.type,
       url: fileUrl,
+      content: fileContent, // Store the base64 content
       createdAt: new Date().toISOString()
     };
 
@@ -368,13 +390,13 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return note;
     });
 
-    storage.saveNotes(updatedNotes);
+    await storage.saveNotes(updatedNotes);
     setNotes(updatedNotes);
     
     return newAttachment;
   };
 
-  const deleteAttachment = (noteId: string, attachmentId: string) => {
+  const deleteAttachment = async (noteId: string, attachmentId: string) => {
     const updatedNotes = notes.map(note => {
       if (note.id === noteId) {
         // Find the attachment to revoke its URL
@@ -398,7 +420,7 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return note;
     });
 
-    storage.saveNotes(updatedNotes);
+    await storage.saveNotes(updatedNotes);
     setNotes(updatedNotes);
   };
 
@@ -415,6 +437,7 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         filteredNotes,
         sortOption,
         defaultEnvelopeId,
+        isLoading,
         
         addNote,
         updateNote,

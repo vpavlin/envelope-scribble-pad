@@ -23,6 +23,7 @@ export type Attachment = {
   type: string;
   url: string;
   createdAt: string;
+  content?: string; // Base64 encoded content
 };
 
 export type Note = {

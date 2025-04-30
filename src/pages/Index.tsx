@@ -11,7 +11,7 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/componen
 // Component to handle the note view with context access
 const NoteView = () => {
   const isMobile = useIsMobile();
-  const { activeNoteId } = useNotes();
+  const { activeNoteId, isLoading } = useNotes();
   
   if (isMobile) {
     return (
