@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { ChevronLeft, Key, Save, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -51,15 +50,23 @@ const Settings = () => {
     
     if (enabled) {
       setIsSyncInitializing(true);
-      const success = await initializeWaku(syncPassword);
-      setIsSyncInitializing(false);
-      
-      if (success) {
-        toast.success("Cross-device sync initialized successfully");
-      } else {
+      try {
+        const success = await initializeWaku(syncPassword);
+        
+        if (success) {
+          toast.success("Cross-device sync initialized successfully");
+        } else {
+          setSyncEnabled(false);
+          setSyncConfig({ password: syncPassword, enabled: false });
+          toast.error("Failed to initialize cross-device sync");
+        }
+      } catch (error) {
+        console.error("Error initializing Waku:", error);
         setSyncEnabled(false);
         setSyncConfig({ password: syncPassword, enabled: false });
         toast.error("Failed to initialize cross-device sync");
+      } finally {
+        setIsSyncInitializing(false);
       }
     }
   };
@@ -76,13 +83,19 @@ const Settings = () => {
     // If sync is already enabled, reinitialize Waku with the new password
     if (syncEnabled) {
       setIsSyncInitializing(true);
-      const success = await initializeWaku(syncPassword);
-      setIsSyncInitializing(false);
-      
-      if (success) {
-        toast.success("Cross-device sync reinitialized with new password");
-      } else {
+      try {
+        const success = await initializeWaku(syncPassword);
+        
+        if (success) {
+          toast.success("Cross-device sync reinitialized with new password");
+        } else {
+          toast.error("Failed to reinitialize cross-device sync");
+        }
+      } catch (error) {
+        console.error("Error reinitializing Waku:", error);
         toast.error("Failed to reinitialize cross-device sync");
+      } finally {
+        setIsSyncInitializing(false);
       }
     }
   };

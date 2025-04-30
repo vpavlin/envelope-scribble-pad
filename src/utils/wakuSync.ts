@@ -1,5 +1,5 @@
 
-import { getDispatcher, DispatchCallback, KeyType, Key } from "waku-dispatcher";
+import { Dispatcher, KeyType } from "waku-dispatcher";
 import { MessageType } from "@/types/note";
 
 export type SyncConfig = {
@@ -7,7 +7,7 @@ export type SyncConfig = {
   enabled: boolean;
 };
 
-let dispatcher: any = null;
+let dispatcher: Dispatcher | null = null;
 let syncEnabled = false;
 let encryptionKey: Uint8Array | null = null;
 
@@ -21,7 +21,8 @@ export const initializeWaku = async (password: string): Promise<boolean> => {
     encryptionKey = new Uint8Array(key);
     
     // Initialize the Waku dispatcher
-    dispatcher = await getDispatcher(undefined, "/notes/1/sync/json", "notes", false, true);
+    dispatcher = new Dispatcher(undefined, "/notes/1/sync/json", "notes", false, true);
+    await dispatcher.start();
     
     if (dispatcher) {
       // Register the encryption key

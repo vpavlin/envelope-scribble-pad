@@ -54,7 +54,9 @@ const Index = () => {
       if (syncConfig.enabled && syncConfig.password) {
         try {
           const success = await initializeWaku(syncConfig.password);
-          if (!success) {
+          if (success) {
+            toast.success("Cross-device sync initialized successfully");
+          } else {
             toast.error("Failed to initialize cross-device sync");
           }
         } catch (error) {
