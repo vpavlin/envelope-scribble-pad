@@ -129,7 +129,12 @@ const Sidebar = () => {
           <Button
             variant={activeEnvelopeId === null ? "secondary" : "ghost"}
             className="w-full justify-start"
-            onClick={() => setActiveEnvelopeId(null)}
+            onClick={() => {
+              setActiveEnvelopeId(null);
+              if (isMobile) {
+                setOpenMobile(false);
+              }
+            }}
           >
             All Notes
           </Button>
@@ -138,7 +143,12 @@ const Sidebar = () => {
               <Button
                 variant={activeEnvelopeId === envelope.id ? "secondary" : "ghost"}
                 className="w-full justify-start"
-                onClick={() => setActiveEnvelopeId(envelope.id)}
+                onClick={() => {
+                  setActiveEnvelopeId(envelope.id);
+                  if (isMobile) {
+                    setOpenMobile(false);
+                  }
+                }}
               >
                 <Folder className="mr-2 h-4 w-4" />
                 {envelope.name}
@@ -214,7 +224,15 @@ const Sidebar = () => {
         <div className="space-y-1">
           {labels.map((label) => (
             <div key={label.id} className="flex items-center group">
-              <Button variant="ghost" className="w-full justify-start">
+              <Button 
+                variant="ghost" 
+                className="w-full justify-start" 
+                onClick={() => {
+                  if (isMobile) {
+                    setOpenMobile(false);
+                  }
+                }}
+              >
                 <div
                   className="w-3 h-3 rounded-full mr-2"
                   style={{ backgroundColor: label.color }}
@@ -273,7 +291,7 @@ const Sidebar = () => {
       </div>
 
       <div className="mt-auto pt-4 border-t border-gray-200">
-        <Link to="/settings" className="flex items-center space-x-2 p-2 rounded-md hover:bg-gray-100 transition-colors">
+        <Link to="/settings" className="flex items-center space-x-2 p-2 rounded-md hover:bg-gray-100 transition-colors" onClick={() => isMobile && setOpenMobile(false)}>
           <Settings className="h-4 w-4 text-gray-500" />
           <span className="text-sm">Settings</span>
         </Link>

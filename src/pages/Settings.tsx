@@ -6,9 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/sonner";
 import { Link } from "react-router-dom";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const Settings = () => {
   const [apiKey, setApiKey] = useState("");
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     // Load the API key from localStorage on component mount
@@ -28,7 +30,7 @@ const Settings = () => {
   };
 
   return (
-    <div className="container max-w-4xl py-10">
+    <div className={`container ${isMobile ? "px-4 py-6" : "max-w-4xl py-10"}`}>
       <div className="mb-6">
         <Link to="/" className="flex items-center text-sm text-muted-foreground hover:underline">
           <ChevronLeft className="mr-1 h-4 w-4" />
@@ -37,7 +39,7 @@ const Settings = () => {
       </div>
       
       <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
+        <h1 className={`${isMobile ? "text-2xl" : "text-3xl"} font-bold tracking-tight`}>Settings</h1>
         <p className="text-muted-foreground">Configure your application preferences</p>
       </div>
 
@@ -68,11 +70,19 @@ const Settings = () => {
             </p>
           </div>
         </CardContent>
-        <CardFooter className="flex justify-between">
-          <Button variant="outline" onClick={clearApiKey}>
+        <CardFooter className={`${isMobile ? "flex-col space-y-2" : "flex justify-between"}`}>
+          <Button 
+            variant="outline" 
+            onClick={clearApiKey}
+            className={isMobile ? "w-full" : ""}
+          >
             Clear API Key
           </Button>
-          <Button onClick={saveApiKey} disabled={!apiKey}>
+          <Button 
+            onClick={saveApiKey} 
+            disabled={!apiKey}
+            className={isMobile ? "w-full" : ""}
+          >
             <Save className="mr-2 h-4 w-4" />
             Save Settings
           </Button>

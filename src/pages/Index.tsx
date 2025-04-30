@@ -11,16 +11,26 @@ const Index = () => {
 
   return (
     <NotesProvider>
-      <div className="flex h-screen bg-gray-50">
+      <div className="flex flex-col h-screen bg-gray-50 md:flex-row">
         <Sidebar />
         
-        <div className={`flex flex-1 ${isMobile ? "ml-0" : "ml-64"}`}>
-          <div className="w-80 flex-shrink-0 bg-white h-full">
-            <NoteList />
-          </div>
-          <div className="flex-1 bg-white h-full">
-            <NoteEditor />
-          </div>
+        <div className={`flex flex-col flex-1 ${isMobile ? "ml-0" : "md:ml-64"}`}>
+          {isMobile ? (
+            <div className="flex flex-col h-full">
+              <div className="h-full">
+                <NoteList />
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-1">
+              <div className="w-80 flex-shrink-0 bg-white h-full border-r">
+                <NoteList />
+              </div>
+              <div className="flex-1 bg-white h-full">
+                <NoteEditor />
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </NotesProvider>

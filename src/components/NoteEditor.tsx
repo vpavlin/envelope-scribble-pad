@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const NoteEditor = () => {
   const { 
@@ -36,6 +37,7 @@ const NoteEditor = () => {
   const [envelopeId, setEnvelopeId] = useState("");
   const [selectedLabelIds, setSelectedLabelIds] = useState<string[]>([]);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (activeNote) {
@@ -82,7 +84,7 @@ const NoteEditor = () => {
   const noteLabels = labels.filter(label => selectedLabelIds.includes(label.id));
 
   return (
-    <div className="flex flex-col h-full p-6">
+    <div className={`flex flex-col h-full ${isMobile ? "p-4" : "p-6"}`}>
       {isEditing ? (
         <div className="mb-4 flex items-center">
           <Input
@@ -102,7 +104,7 @@ const NoteEditor = () => {
         </div>
       ) : (
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-xl font-medium">{activeNote.title}</h2>
+          <h2 className={`${isMobile ? "text-lg" : "text-xl"} font-medium truncate`}>{activeNote.title}</h2>
           <div className="flex space-x-1">
             <Button 
               variant="ghost" 
