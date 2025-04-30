@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { Note, Envelope, Label, Comment, SortOptions, Attachment } from "@/types/note";
@@ -161,7 +162,8 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       labelIds,
       createdAt: now,
       updatedAt: now,
-      comments: []
+      comments: [],
+      attachments: [] // Add the attachments property as an empty array
     };
 
     storage.addNote(newNote);
