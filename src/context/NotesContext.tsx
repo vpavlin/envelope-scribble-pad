@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { Note, Envelope, Label, Comment, SortOptions } from "@/types/note";
@@ -12,6 +13,7 @@ interface NotesContextProps {
   activeNoteId: string | null;
   searchTerm: string;
   filteredNotes: Note[];
+  sortOption: SortOptions;
   
   addNote: (title: string, content: string, envelopeId: string, labelIds: string[]) => void;
   updateNote: (id: string, updates: Partial<Omit<Note, "id">>) => void;
@@ -53,7 +55,11 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [activeEnvelopeId, setActiveEnvelopeId] = useState<string | null>(null);
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortOption, setSortOption] = useState<SortOptions>("dateNewest");
+  const [sortOption, setSortOption] = useState<SortOptions>(() => {
+    // Try to load sort option from localStorage
+    const savedSortOption = localStorage.getItem('sortOption');
+    return (savedSortOption as SortOptions) || "dateNewest";
+  });
 
   // Initialize data on component mount
   useEffect(() => {
@@ -63,6 +69,11 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setEnvelopes(storage.getEnvelopes());
     setLabels(storage.getLabels());
   }, []);
+
+  // Save sort option to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('sortOption', sortOption);
+  }, [sortOption]);
 
   // Effect to update activeNote when activeNoteId changes
   useEffect(() => {
@@ -315,6 +326,7 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         activeNoteId,
         searchTerm,
         filteredNotes,
+        sortOption,
         
         addNote,
         updateNote,

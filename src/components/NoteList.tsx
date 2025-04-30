@@ -7,13 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import SearchBar from "./SearchBar";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
 import { SortOptions } from "@/types/note";
 import {
   DropdownMenu,
@@ -30,11 +23,11 @@ const NoteList = () => {
     activeEnvelopeId,
     activeNoteId, 
     envelopes,
-    sortNotes
+    sortNotes,
+    sortOption
   } = useNotes();
 
   const isMobile = useIsMobile();
-  const [sortOption, setSortOption] = useState<SortOptions>("dateNewest");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const handleAddNote = () => {
@@ -43,7 +36,6 @@ const NoteList = () => {
   };
 
   const handleSortChange = (value: SortOptions) => {
-    setSortOption(value);
     sortNotes(value);
   };
 
