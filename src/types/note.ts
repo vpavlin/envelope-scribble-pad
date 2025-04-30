@@ -33,3 +33,5 @@ export type Envelope = {
   id: string;
   name: string;
 };
+
+export type SortOptions = "dateNewest" | "dateOldest" | "envelope" | "latestComment";

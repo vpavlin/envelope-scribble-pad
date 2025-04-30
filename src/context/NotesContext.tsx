@@ -1,7 +1,6 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
-import { Note, Envelope, Label, Comment } from "@/types/note";
+import { Note, Envelope, Label, Comment, SortOptions } from "@/types/note";
 import * as storage from "@/utils/storage";
 
 interface NotesContextProps {
@@ -33,6 +32,7 @@ interface NotesContextProps {
   deleteComment: (noteId: string, commentId: string) => void;
   
   setSearchTerm: (term: string) => void;
+  sortNotes: (sortOption: SortOptions) => void;
 }
 
 const NotesContext = createContext<NotesContextProps | undefined>(undefined);
@@ -53,6 +53,7 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [activeEnvelopeId, setActiveEnvelopeId] = useState<string | null>(null);
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [sortOption, setSortOption] = useState<SortOptions>("dateNewest");
 
   // Initialize data on component mount
   useEffect(() => {
@@ -76,7 +77,7 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [activeNoteId, notes]);
 
   // Filter notes based on active envelope and search term
-  const filteredNotes = notes.filter(note => {
+  let filteredNotes = notes.filter(note => {
     const matchesEnvelope = activeEnvelopeId ? note.envelopeId === activeEnvelopeId : true;
     const matchesSearch = searchTerm
       ? note.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -84,6 +85,37 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       : true;
 
     return matchesEnvelope && matchesSearch;
+  });
+
+  // Sort notes based on the current sort option
+  const sortNotes = (option: SortOptions) => {
+    setSortOption(option);
+  };
+
+  // Apply sorting to filtered notes
+  filteredNotes = [...filteredNotes].sort((a, b) => {
+    switch (sortOption) {
+      case "dateNewest":
+        return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+      case "dateOldest":
+        return new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime();
+      case "envelope": {
+        const envelopeA = envelopes.find(env => env.id === a.envelopeId)?.name || "";
+        const envelopeB = envelopes.find(env => env.id === b.envelopeId)?.name || "";
+        return envelopeA.localeCompare(envelopeB);
+      }
+      case "latestComment": {
+        const latestCommentA = a.comments.length > 0 
+          ? new Date(a.comments[a.comments.length - 1].createdAt).getTime()
+          : 0;
+        const latestCommentB = b.comments.length > 0
+          ? new Date(b.comments[b.comments.length - 1].createdAt).getTime()
+          : 0;
+        return latestCommentB - latestCommentA;
+      }
+      default:
+        return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+    }
   });
 
   // Note operations
@@ -103,6 +135,7 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     storage.addNote(newNote);
     setNotes([...notes, newNote]);
     setActiveNote(newNote);
+    setActiveNoteId(newNote.id);
   };
 
   const updateNote = (id: string, updates: Partial<Omit<Note, "id">>) => {
@@ -133,6 +166,7 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     
     if (activeNote?.id === id) {
       setActiveNote(null);
+      setActiveNoteId(null);
     }
   };
 
@@ -300,7 +334,8 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         addComment,
         deleteComment,
         
-        setSearchTerm
+        setSearchTerm,
+        sortNotes
       }}
     >
       {children}
