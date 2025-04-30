@@ -1,5 +1,5 @@
 
-import getDispatcher, { Dispatcher, KeyType,  } from "waku-dispatcher";
+import { Dispatcher, KeyType } from "waku-dispatcher";
 import { MessageType } from "@/types/note";
 import {
   createLightNode,
@@ -30,6 +30,39 @@ export const DEFAULT_WAKU_SHARD_ID = "0"
 export const WAKU_CLUSTER_ID_STORAGE_KEY = "waku-cluster-id"
 export const WAKU_SHARD_ID = "waku-shard-id"
 
+// Function to derive content topic from password
+const deriveContentTopic = (password: string): string => {
+  // Create a simple hash of the password to derive a unique content topic
+  let hash = 0;
+  for (let i = 0; i < password.length; i++) {
+    const char = password.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  
+  // Use the hash to create a unique content topic
+  return `/notes/${Math.abs(hash).toString(16).substring(0, 8)}/sync/json`;
+};
+
+export const generateSecurePassword = (): string => {
+  // Characters to use in the password
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+';
+  // Length of the password
+  const length = 24;
+  
+  let password = '';
+  
+  // Generate a random password
+  const randomValues = new Uint8Array(length);
+  window.crypto.getRandomValues(randomValues);
+  
+  for (let i = 0; i < length; i++) {
+    password += chars[randomValues[i] % chars.length];
+  }
+  
+  return password;
+};
+
 export const initializeWaku = async (password: string): Promise<Dispatcher> => {
   if (initializing) return initializedPromise
   console.log("initializing")
@@ -45,9 +78,10 @@ export const initializeWaku = async (password: string): Promise<Dispatcher> => {
         const key = await crypto.subtle.digest('SHA-256', passwordBytes);
         encryptionKey = new Uint8Array(key);
         
+        // Derive content topic from password
+        const contentTopic = deriveContentTopic(password);
+        
         // Initialize the Waku dispatcher
-        // Correcting the constructor call to match expected parameters
-    
         const wakuClusterId = localStorage.getItem(WAKU_CLUSTER_ID_STORAGE_KEY) || DEFAULT_WAKU_CLUSTER_ID
         const wakuShardId = localStorage.getItem(WAKU_SHARD_ID) || DEFAULT_WAKU_SHARD_ID
         let libp2p = undefined
@@ -61,32 +95,27 @@ export const initializeWaku = async (password: string): Promise<Dispatcher> => {
               }
         }
         const node = await createLightNode({
-            networkConfig:networkConfig,
+            networkConfig: networkConfig,
             defaultBootstrap: false,
             bootstrapPeers: bootstrapNodes,
             numPeersToUse: 3,
             libp2p: libp2p,
-        })
+        });
     
-        dispatcher = await getDispatcher(node, "/notes/1/sync/json", "notes", false, true);
+        dispatcher = new Dispatcher(node, contentTopic, "notes", false);
         
         if (dispatcher) {
           // Register the encryption key
-          
           dispatcher.registerKey(encryptionKey, KeyType.Symmetric, true);
           syncEnabled = true;
           resolve(dispatcher);
-
         }
       } catch (error) {
         console.error("Error initializing Waku:", error);
       }
-
-    })
+    });
   }
-  return initializedPromise
-
-  
+  return initializedPromise;
 };
 
 export const getSyncConfig = (): SyncConfig => {

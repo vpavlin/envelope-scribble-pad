@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from "react";
-import { ChevronLeft, Key, Save, RefreshCw } from "lucide-react";
+import { ChevronLeft, Key, Save, RefreshCw, Eye, EyeOff, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,13 +9,18 @@ import { Link } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { initializeWaku, getSyncConfig, setSyncConfig } from "@/utils/wakuSync";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { initializeWaku, getSyncConfig, setSyncConfig, generateSecurePassword } from "@/utils/wakuSync";
+
+import QRCode from "qrcode.react";
 
 const Settings = () => {
   const [apiKey, setApiKey] = useState("");
   const [syncPassword, setSyncPassword] = useState("");
   const [syncEnabled, setSyncEnabled] = useState(false);
   const [isSyncInitializing, setIsSyncInitializing] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const isMobile = useIsMobile();
 
   useEffect(() => {
@@ -51,15 +57,8 @@ const Settings = () => {
     if (enabled) {
       setIsSyncInitializing(true);
       try {
-        const success = await initializeWaku(syncPassword);
-        
-        if (success) {
-          toast.success("Cross-device sync initialized successfully");
-        } else {
-          setSyncEnabled(false);
-          setSyncConfig({ password: syncPassword, enabled: false });
-          toast.error("Failed to initialize cross-device sync");
-        }
+        await initializeWaku(syncPassword);
+        toast.success("Cross-device sync initialized successfully");
       } catch (error) {
         console.error("Error initializing Waku:", error);
         setSyncEnabled(false);
@@ -84,13 +83,8 @@ const Settings = () => {
     if (syncEnabled) {
       setIsSyncInitializing(true);
       try {
-        const success = await initializeWaku(syncPassword);
-        
-        if (success) {
-          toast.success("Cross-device sync reinitialized with new password");
-        } else {
-          toast.error("Failed to reinitialize cross-device sync");
-        }
+        await initializeWaku(syncPassword);
+        toast.success("Cross-device sync reinitialized with new password");
       } catch (error) {
         console.error("Error reinitializing Waku:", error);
         toast.error("Failed to reinitialize cross-device sync");
@@ -98,6 +92,17 @@ const Settings = () => {
         setIsSyncInitializing(false);
       }
     }
+  };
+
+  const generatePassword = () => {
+    const newPassword = generateSecurePassword();
+    setSyncPassword(newPassword);
+    setSyncConfig({ password: newPassword, enabled: syncEnabled });
+    toast.success("New secure password generated");
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
   };
 
   return (
@@ -145,17 +150,29 @@ const Settings = () => {
               <div className="space-y-2">
                 <Label htmlFor="syncPassword">Sync Password</Label>
                 <p className="text-xs text-muted-foreground">
-                  This password is used to encrypt your data during synchronization. 
+                  This password is used to encrypt your data during synchronization and to create a private channel. 
                   Make sure to remember this password as it cannot be recovered.
                 </p>
                 <div className="flex items-center gap-2">
-                  <Input
-                    id="syncPassword"
-                    type="password"
-                    placeholder="Enter sync password"
-                    value={syncPassword}
-                    onChange={(e) => setSyncPassword(e.target.value)}
-                  />
+                  <div className="relative w-full">
+                    <Input
+                      id="syncPassword"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Enter sync password"
+                      value={syncPassword}
+                      onChange={(e) => setSyncPassword(e.target.value)}
+                      className="pr-10"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-0 top-0"
+                      onClick={togglePasswordVisibility}
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
                   <Button 
                     onClick={saveSyncPassword}
                     disabled={!syncPassword || isSyncInitializing}
@@ -163,6 +180,43 @@ const Settings = () => {
                   >
                     Save Password
                   </Button>
+                </div>
+                
+                <div className="flex flex-wrap gap-2 mt-4">
+                  <Button 
+                    variant="outline"
+                    onClick={generatePassword}
+                    disabled={isSyncInitializing}
+                  >
+                    Generate Secure Password
+                  </Button>
+                  
+                  {syncPassword && (
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button variant="outline">
+                          <QrCode className="mr-2 h-4 w-4" />
+                          Show QR Code
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-md">
+                        <DialogHeader>
+                          <DialogTitle>Sync Password QR Code</DialogTitle>
+                        </DialogHeader>
+                        <div className="flex flex-col items-center justify-center p-6">
+                          <QRCode 
+                            value={syncPassword} 
+                            size={200} 
+                            level="H"
+                            renderAs="svg"
+                          />
+                          <p className="mt-4 text-center text-sm text-muted-foreground">
+                            Scan this QR code on another device to enter the same sync password
+                          </p>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  )}
                 </div>
               </div>
             </div>
