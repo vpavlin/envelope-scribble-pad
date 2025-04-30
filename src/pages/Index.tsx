@@ -6,6 +6,7 @@ import NoteList from "@/components/NoteList";
 import NoteEditor from "@/components/NoteEditor";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useNotes } from "@/context/NotesContext";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 
 // Component to handle the note view with context access
 const NoteView = () => {
@@ -23,14 +24,20 @@ const NoteView = () => {
   }
   
   return (
-    <div className="flex flex-1">
-      <div className="w-80 flex-shrink-0 bg-white h-full border-r">
+    <ResizablePanelGroup direction="horizontal" className="flex-1 h-full">
+      <ResizablePanel 
+        defaultSize={25} 
+        minSize={20} 
+        maxSize={40} 
+        className="bg-white h-full"
+      >
         <NoteList />
-      </div>
-      <div className="flex-1 bg-white h-full">
+      </ResizablePanel>
+      <ResizableHandle withHandle />
+      <ResizablePanel className="bg-white h-full">
         <NoteEditor />
-      </div>
-    </div>
+      </ResizablePanel>
+    </ResizablePanelGroup>
   );
 };
 
