@@ -21,7 +21,8 @@ export const initializeWaku = async (password: string): Promise<boolean> => {
     encryptionKey = new Uint8Array(key);
     
     // Initialize the Waku dispatcher
-    dispatcher = new Dispatcher(undefined, "/notes/1/sync/json", "notes", false, true);
+    // Correcting the constructor call to match expected parameters
+    dispatcher = new Dispatcher(undefined, "/notes/1/sync/json", "notes", false);
     await dispatcher.start();
     
     if (dispatcher) {
