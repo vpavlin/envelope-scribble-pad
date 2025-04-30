@@ -7,6 +7,7 @@ import { Lightbulb, RefreshCw, Settings } from "lucide-react";
 import { AISummary as AISummaryType } from "@/types/note";
 import { getNoteSummary, getNoteEnhancement } from "@/utils/aiUtils";
 import { useNotes } from "@/context/NotesContext";
+import { Link } from "react-router-dom";
 import { 
   Dialog,
   DialogContent,
@@ -105,13 +106,14 @@ const AISummary: React.FC<AISummaryProps> = ({ noteId, noteContent, summaries = 
             Enhance
           </Button>
           
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsSettingsOpen(true)}
-          >
-            <Settings className="h-4 w-4" />
-          </Button>
+          <Link to="/settings">
+            <Button
+              variant="ghost"
+              size="sm"
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
+          </Link>
         </div>
       </div>
 
@@ -132,7 +134,10 @@ const AISummary: React.FC<AISummaryProps> = ({ noteId, noteContent, summaries = 
       {!hasApiKey && !hasSummaries && (
         <Card className="p-3 bg-muted/50 border-dashed">
           <p className="text-sm text-muted-foreground text-center">
-            Configure your Akash API key to get AI-powered insights
+            <Link to="/settings" className="hover:underline">
+              Configure your Akash API key
+            </Link>{" "}
+            to get AI-powered insights
           </p>
         </Card>
       )}
