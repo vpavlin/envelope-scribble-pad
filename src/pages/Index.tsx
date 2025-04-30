@@ -1,13 +1,29 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import React from "react";
+import { NotesProvider } from "@/context/NotesContext";
+import Sidebar from "@/components/Sidebar";
+import NoteList from "@/components/NoteList";
+import NoteEditor from "@/components/NoteEditor";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const Index = () => {
+  const isMobile = useIsMobile();
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
+    <NotesProvider>
+      <div className="flex h-screen bg-gray-50">
+        <Sidebar />
+        
+        <div className={`flex flex-1 ${isMobile ? "ml-0" : "ml-64"}`}>
+          <div className="w-80 flex-shrink-0 bg-white h-full">
+            <NoteList />
+          </div>
+          <div className="flex-1 bg-white h-full">
+            <NoteEditor />
+          </div>
+        </div>
       </div>
-    </div>
+    </NotesProvider>
   );
 };
 
