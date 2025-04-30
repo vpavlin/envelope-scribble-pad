@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { useNotes } from "@/context/NotesContext";
 import CommentSection from "./CommentSection";
@@ -9,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
-import { Calendar, Edit, Save, Trash2, Tag, ArrowLeft, Image, Upload, Sync } from "lucide-react";
+import { Calendar, Edit, Save, Trash2, Tag, ArrowLeft, Image, Upload, RefreshCw } from "lucide-react";
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -261,7 +260,7 @@ const NoteEditor = () => {
                 onClick={handleSyncNote}
                 disabled={isSyncing}
               >
-                <Sync className={`h-5 w-5 ${isSyncing ? "animate-spin" : ""}`} />
+                <RefreshCw className={`h-5 w-5 ${isSyncing ? "animate-spin" : ""}`} />
               </Button>
             )}
           </div>
@@ -392,7 +391,7 @@ const NoteEditor = () => {
               disabled={isSyncing}
               className="flex items-center"
             >
-              <Sync className={`h-4 w-4 mr-1 ${isSyncing ? "animate-spin" : ""}`} />
+              <RefreshCw className={`h-4 w-4 mr-1 ${isSyncing ? "animate-spin" : ""}`} />
               <span>Sync Note</span>
             </Button>
           )}
