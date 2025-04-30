@@ -1,5 +1,5 @@
 
-import { Dispatcher, KeyType } from "waku-dispatcher";
+import getDispatcher, { Dispatcher, KeyType } from "waku-dispatcher";
 import { MessageType } from "@/types/note";
 import {
   createLightNode,
@@ -102,7 +102,7 @@ export const initializeWaku = async (password: string): Promise<Dispatcher> => {
             libp2p: libp2p,
         });
     
-        dispatcher = new Dispatcher(node, contentTopic, "notes", false);
+        dispatcher = await getDispatcher(node, contentTopic, "notes", false, true); //use getDispatcher!
         
         if (dispatcher) {
           // Register the encryption key
