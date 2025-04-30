@@ -102,7 +102,7 @@ export const initializeWaku = async (password: string): Promise<Dispatcher> => {
             libp2p: libp2p,
         });
     
-        dispatcher = await getDispatcher(node, contentTopic, "notes", false, true); //use getDispatcher!
+        dispatcher = await getDispatcher(node, contentTopic, "notes", false); //use getDispatcher!
         
         if (dispatcher) {
           // Register the encryption key

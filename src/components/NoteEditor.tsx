@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
-import { Calendar, Edit, Save, Trash2, Tag, ArrowLeft, Image, Upload, FileImage } from "lucide-react";
+import { Calendar, Edit, Save, Trash2, Tag, ArrowLeft, Image, Upload, Sync } from "lucide-react";
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -24,6 +24,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
 import ReactMarkdown from "react-markdown";
+import { emit, isWakuInitialized } from "@/utils/wakuSync";
+import { MessageType } from "@/types/note";
 
 const NoteEditor = () => {
   const { 
@@ -46,6 +48,7 @@ const NoteEditor = () => {
   const [selectedLabelIds, setSelectedLabelIds] = useState<string[]>([]);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const isMobile = useIsMobile();
 
   useEffect(() => {
@@ -87,6 +90,45 @@ const NoteEditor = () => {
   const handleDelete = async () => {
     await deleteNote(activeNote.id);
     setIsDeleteDialogOpen(false);
+  };
+
+  const handleSyncNote = async () => {
+    if (!activeNote || !isWakuInitialized()) {
+      toast({
+        title: "Sync not available",
+        description: "Sync is not enabled or initialized properly",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsSyncing(true);
+    try {
+      // Force sync the note to other devices
+      const success = await emit(MessageType.NOTE_UPDATED, activeNote);
+      
+      if (success) {
+        toast({
+          title: "Note synced",
+          description: "Note was successfully synced to other devices"
+        });
+      } else {
+        toast({
+          title: "Sync failed",
+          description: "Failed to sync note to other devices",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error("Error syncing note:", error);
+      toast({
+        title: "Sync error",
+        description: "An error occurred while syncing the note",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   const toggleLabel = (labelId: string) => {
@@ -212,6 +254,16 @@ const NoteEditor = () => {
             >
               <Trash2 className="h-5 w-5" />
             </Button>
+            {isWakuInitialized() && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleSyncNote}
+                disabled={isSyncing}
+              >
+                <Sync className={`h-5 w-5 ${isSyncing ? "animate-spin" : ""}`} />
+              </Button>
+            )}
           </div>
         </div>
       )}
@@ -332,6 +384,18 @@ const NoteEditor = () => {
             <Image className="h-4 w-4 mr-1" />
             <span>Take Photo</span>
           </Button>
+          {isWakuInitialized() && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSyncNote}
+              disabled={isSyncing}
+              className="flex items-center"
+            >
+              <Sync className={`h-4 w-4 mr-1 ${isSyncing ? "animate-spin" : ""}`} />
+              <span>Sync Note</span>
+            </Button>
+          )}
         </div>
       </div>
       
