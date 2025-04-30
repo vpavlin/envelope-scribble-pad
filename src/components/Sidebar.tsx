@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PlusCircle, Search, Folder, Tag, Settings, Menu, Star } from "lucide-react";
+import { PlusCircle, Search, Folder, Tag, Settings, Menu, Star, RefreshCw } from "lucide-react";
 import { useNotes } from "@/context/NotesContext";
 import { v4 as uuidv4 } from "uuid";
 import { Link } from "react-router-dom";
@@ -27,6 +27,8 @@ import {
 } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { isWakuInitialized } from "@/utils/wakuSync";
+import { emit, MessageType } from "@/utils/wakuSync";
 
 const Sidebar = () => {
   const {
@@ -55,6 +57,8 @@ const Sidebar = () => {
   const [editingLabelId, setEditingLabelId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [openMobile, setOpenMobile] = useState(false);
+  const [isSyncingEnvelopes, setIsSyncingEnvelopes] = useState(false);
+  const [isSyncingLabels, setIsSyncingLabels] = useState(false);
   const isMobile = useIsMobile();
 
   const handleEnvelopeSubmit = () => {
@@ -122,6 +126,64 @@ const Sidebar = () => {
     setSearchTerm(searchQuery);
   };
 
+  const forceEnvelopeSync = async () => {
+    if (!isWakuInitialized() || isSyncingEnvelopes) return;
+    
+    setIsSyncingEnvelopes(true);
+    
+    try {
+      // Force sync all envelopes
+      let successCount = 0;
+      for (const envelope of envelopes) {
+        await emit(MessageType.ENVELOPE_UPDATED, envelope);
+        successCount++;
+      }
+      
+      toast({
+        title: "Envelopes synced",
+        description: `Successfully synced ${successCount} envelopes to other devices.`,
+      });
+    } catch (error) {
+      console.error("Error syncing envelopes:", error);
+      toast({
+        title: "Sync failed",
+        description: "Failed to sync envelopes to other devices.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSyncingEnvelopes(false);
+    }
+  };
+  
+  const forceLabelSync = async () => {
+    if (!isWakuInitialized() || isSyncingLabels) return;
+    
+    setIsSyncingLabels(true);
+    
+    try {
+      // Force sync all labels
+      let successCount = 0;
+      for (const label of labels) {
+        await emit(MessageType.LABEL_UPDATED, label);
+        successCount++;
+      }
+      
+      toast({
+        title: "Labels synced",
+        description: `Successfully synced ${successCount} labels to other devices.`,
+      });
+    } catch (error) {
+      console.error("Error syncing labels:", error);
+      toast({
+        title: "Sync failed",
+        description: "Failed to sync labels to other devices.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSyncingLabels(false);
+    }
+  };
+
   const sidebarContent = (
     <div className="w-64 fixed left-0 top-0 h-full bg-slate-50 border-r border-gray-200 p-4 flex flex-col overflow-auto">
       <div className="mb-6">
@@ -140,19 +202,40 @@ const Sidebar = () => {
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-sm font-medium text-muted-foreground">ENVELOPES</h2>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0"
-            onClick={() => {
-              setNewEnvelopeName("");
-              setEditingEnvelopeId(null);
-              setIsEnvelopeDialogOpen(true);
-            }}
-          >
-            <PlusCircle className="h-4 w-4" />
-            <span className="sr-only">Add Envelope</span>
-          </Button>
+          <div className="flex space-x-1">
+            {isWakuInitialized() && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      onClick={forceEnvelopeSync}
+                      disabled={isSyncingEnvelopes}
+                    >
+                      <RefreshCw className={`h-4 w-4 ${isSyncingEnvelopes ? "animate-spin" : ""}`} />
+                      <span className="sr-only">Sync Envelopes</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">Force sync envelopes</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={() => {
+                setNewEnvelopeName("");
+                setEditingEnvelopeId(null);
+                setIsEnvelopeDialogOpen(true);
+              }}
+            >
+              <PlusCircle className="h-4 w-4" />
+              <span className="sr-only">Add Envelope</span>
+            </Button>
+          </div>
         </div>
         <div className="space-y-1">
           <Button
@@ -266,20 +349,41 @@ const Sidebar = () => {
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-sm font-medium text-muted-foreground">LABELS</h2>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0"
-            onClick={() => {
-              setNewLabelName("");
-              setNewLabelColor("#3b82f6");
-              setEditingLabelId(null);
-              setIsLabelDialogOpen(true);
-            }}
-          >
-            <PlusCircle className="h-4 w-4" />
-            <span className="sr-only">Add Label</span>
-          </Button>
+          <div className="flex space-x-1">
+            {isWakuInitialized() && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      onClick={forceLabelSync}
+                      disabled={isSyncingLabels}
+                    >
+                      <RefreshCw className={`h-4 w-4 ${isSyncingLabels ? "animate-spin" : ""}`} />
+                      <span className="sr-only">Sync Labels</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">Force sync labels</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={() => {
+                setNewLabelName("");
+                setNewLabelColor("#3b82f6");
+                setEditingLabelId(null);
+                setIsLabelDialogOpen(true);
+              }}
+            >
+              <PlusCircle className="h-4 w-4" />
+              <span className="sr-only">Add Label</span>
+            </Button>
+          </div>
         </div>
         <div className="space-y-1">
           {labels.map((label) => (
