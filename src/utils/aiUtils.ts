@@ -39,6 +39,9 @@ export const getNoteSummary = async (
     // Set the Authorization header with the API key
     client.defaults.headers.common['Authorization'] = `Bearer ${apiKey}`;
     
+    // If content is provided, add it to the prompt
+    const finalPrompt = content ? `${prompt}\n\n${content}` : prompt;
+    
     const messages: ChatMessage[] = [
       {
         role: "system",
@@ -46,7 +49,7 @@ export const getNoteSummary = async (
       },
       {
         role: "user",
-        content: `${prompt}\n\n${content}`
+        content: finalPrompt
       }
     ];
     
