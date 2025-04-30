@@ -78,7 +78,6 @@ export const initializeWaku = async (password: string): Promise<Dispatcher> => {
           resolve(dispatcher);
 
         }
-        console.log(dispatcher)
       } catch (error) {
         console.error("Error initializing Waku:", error);
       }
@@ -103,9 +102,12 @@ export const setSyncConfig = (config: SyncConfig): void => {
 };
 
 export const emit = async <T>(type: MessageType, payload: T): Promise<boolean> => {
+  console.log("Here")
   if (!syncEnabled || !dispatcher || !encryptionKey) {
     return false;
   }
+  console.log("Herere", identity)
+  console.log(payload)
   
   try {
     await dispatcher.emit(type, payload, identity.getWallet(), encryptionKey, false);
@@ -126,6 +128,7 @@ export const subscribe = <T>(
     type,
     async (message: any) => {
       if (message && message.payload) {
+        console.log(message)
         callback(message.payload);
       }
     },
@@ -136,6 +139,6 @@ export const subscribe = <T>(
   );
 };
 
-export const isWakuInitialized = async (): Promise<boolean> => {
+export const isWakuInitialized = (): boolean => {
   return syncEnabled && dispatcher !== null;
 };
