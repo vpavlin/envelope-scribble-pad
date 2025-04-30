@@ -46,28 +46,6 @@ const NoteView = () => {
 // Main Index component
 const Index = () => {
   const isMobile = useIsMobile();
-  
-  useEffect(() => {
-    // Check if sync is enabled and initialize Waku
-    const initializeSync = async () => {
-      const syncConfig = getSyncConfig();
-      if (syncConfig.enabled && syncConfig.password) {
-        try {
-          const success = await initializeWaku(syncConfig.password);
-          if (success) {
-            toast.success("Cross-device sync initialized successfully");
-          } else {
-            toast.error("Failed to initialize cross-device sync");
-          }
-        } catch (error) {
-          console.error("Error initializing Waku:", error);
-          toast.error("Error initializing cross-device sync");
-        }
-      }
-    };
-    
-    initializeSync();
-  }, []);
 
   return (
     <NotesProvider>

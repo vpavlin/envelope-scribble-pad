@@ -3,8 +3,9 @@ import { v4 as uuidv4 } from "uuid";
 import { Note, Envelope, Label, Comment, SortOptions, Attachment, MessageType } from "@/types/note";
 import * as storage from "@/utils/storage";
 import * as indexedDb from "@/utils/indexedDb";
-import { emit, subscribe, isWakuInitialized } from "@/utils/wakuSync";
+import { emit, subscribe, isWakuInitialized, initializeWaku, getSyncConfig } from "@/utils/wakuSync";
 import { toast } from "@/components/ui/sonner";
+import { Dispatcher } from "waku-dispatcher";
 
 interface NotesContextProps {
   notes: Note[];
@@ -64,6 +65,7 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [dispatcher, setDispatcher] = useState<Dispatcher | null>()
   const [sortOption, setSortOption] = useState<SortOptions>(() => {
     // Try to load sort option from localStorage
     const savedSortOption = localStorage.getItem('sortOption');
@@ -100,9 +102,35 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     initializeData();
   }, []);
 
+  useEffect(() => {
+    // Check if sync is enabled and initialize Waku
+    const initializeSync = async () => {
+      const syncConfig = getSyncConfig();
+      if (syncConfig.enabled && syncConfig.password) {
+        try {
+          const dispatcher = await initializeWaku(syncConfig.password);
+          console.log(dispatcher)
+
+          setDispatcher(dispatcher)
+          if (dispatcher) {
+            toast.success("Cross-device sync initialized successfully");
+          } else {
+            toast.error("Failed to initialize cross-device sync");
+          }
+        } catch (error) {
+          console.error("Error initializing Waku:", error);
+          toast.error("Error initializing cross-device sync");
+        }
+      }
+    };
+    
+    initializeSync();
+  }, []);
+
   // Initialize Waku subscriptions
   useEffect(() => {
-    if (isWakuInitialized()) {
+    if (dispatcher && isWakuInitialized()) {
+      console.log("here")
       // Subscribe to note events
       subscribe<Note>(MessageType.NOTE_ADDED, (note) => {
         if (!syncProcessingIds.has(note.id)) {
@@ -204,8 +232,10 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           });
         }
       });
+
+      console.log("Dispatcher ready")
     }
-  }, [syncProcessingIds]);
+  }, [dispatcher]);
 
   // Save sort option to localStorage whenever it changes
   useEffect(() => {
