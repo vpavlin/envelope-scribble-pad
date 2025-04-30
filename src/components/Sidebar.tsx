@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PlusCircle, Search, Folder, Tag, Settings, Menu } from "lucide-react";
+import { PlusCircle, Search, Folder, Tag, Settings, Menu, Star } from "lucide-react";
 import { useNotes } from "@/context/NotesContext";
 import { v4 as uuidv4 } from "uuid";
 import { Link } from "react-router-dom";
@@ -19,6 +19,13 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const Sidebar = () => {
@@ -33,9 +40,12 @@ const Sidebar = () => {
     deleteLabel,
     activeEnvelopeId,
     setActiveEnvelopeId,
+    defaultEnvelopeId,
+    setDefaultEnvelopeId,
     setSearchTerm,
   } = useNotes();
 
+  const { toast } = useToast();
   const [isEnvelopeDialogOpen, setIsEnvelopeDialogOpen] = useState(false);
   const [isLabelDialogOpen, setIsLabelDialogOpen] = useState(false);
   const [newEnvelopeName, setNewEnvelopeName] = useState("");
@@ -87,6 +97,24 @@ const Sidebar = () => {
     setNewLabelName(name);
     setNewLabelColor(color);
     setIsLabelDialogOpen(true);
+  };
+
+  const handleSetDefaultEnvelope = (id: string, name: string) => {
+    const isAlreadyDefault = defaultEnvelopeId === id;
+    
+    if (isAlreadyDefault) {
+      setDefaultEnvelopeId(null);
+      toast({
+        title: "Default envelope removed",
+        description: `"${name}" is no longer the default envelope.`
+      });
+    } else {
+      setDefaultEnvelopeId(id);
+      toast({
+        title: "Default envelope set",
+        description: `"${name}" is now your default envelope.`
+      });
+    }
   };
 
   const handleSearch = (e: React.FormEvent) => {
@@ -153,13 +181,41 @@ const Sidebar = () => {
               >
                 <Folder className="mr-2 h-4 w-4" />
                 {envelope.name}
+                {defaultEnvelopeId === envelope.id && (
+                  <Star className="ml-auto h-3 w-3 text-yellow-500 fill-yellow-500" />
+                )}
               </Button>
               <div className="hidden group-hover:flex">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSetDefaultEnvelope(envelope.id, envelope.name);
+                        }}
+                      >
+                        <span className="sr-only">Set as default</span>
+                        <Star className={`h-4 w-4 ${defaultEnvelopeId === envelope.id ? 'fill-yellow-500 text-yellow-500' : ''}`} />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      {defaultEnvelopeId === envelope.id ? 'Remove as default' : 'Set as default envelope'}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                
                 <Button
                   variant="ghost"
                   size="sm"
                   className="h-8 w-8 p-0"
-                  onClick={() => handleEditEnvelope(envelope.id, envelope.name)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleEditEnvelope(envelope.id, envelope.name);
+                  }}
                 >
                   <span className="sr-only">Edit</span>
                   <svg
@@ -180,7 +236,10 @@ const Sidebar = () => {
                   variant="ghost"
                   size="sm"
                   className="h-8 w-8 p-0 text-destructive"
-                  onClick={() => deleteEnvelope(envelope.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteEnvelope(envelope.id);
+                  }}
                 >
                   <span className="sr-only">Delete</span>
                   <svg

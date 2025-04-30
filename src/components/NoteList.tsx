@@ -23,6 +23,7 @@ const NoteList = () => {
     activeEnvelopeId,
     activeNoteId, 
     envelopes,
+    defaultEnvelopeId,
     sortNotes,
     sortOption
   } = useNotes();
@@ -31,7 +32,8 @@ const NoteList = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const handleAddNote = () => {
-    const envelopeId = activeEnvelopeId || (envelopes.length > 0 ? envelopes[0].id : "");
+    // Use activeEnvelopeId as first choice, then defaultEnvelopeId if available, then first envelope as fallback
+    let envelopeId = activeEnvelopeId || defaultEnvelopeId || (envelopes.length > 0 ? envelopes[0].id : "");
     addNote("New Note", "", envelopeId, []);
   };
 

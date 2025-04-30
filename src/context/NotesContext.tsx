@@ -14,6 +14,7 @@ interface NotesContextProps {
   searchTerm: string;
   filteredNotes: Note[];
   sortOption: SortOptions;
+  defaultEnvelopeId: string | null;
   
   addNote: (title: string, content: string, envelopeId: string, labelIds: string[]) => void;
   updateNote: (id: string, updates: Partial<Omit<Note, "id">>) => void;
@@ -25,6 +26,7 @@ interface NotesContextProps {
   updateEnvelope: (id: string, name: string) => void;
   deleteEnvelope: (id: string) => void;
   setActiveEnvelopeId: (id: string | null) => void;
+  setDefaultEnvelopeId: (id: string | null) => void;
   
   addLabel: (name: string, color: string) => void;
   updateLabel: (id: string, name: string, color: string) => void;
@@ -60,6 +62,11 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const savedSortOption = localStorage.getItem('sortOption');
     return (savedSortOption as SortOptions) || "dateNewest";
   });
+  const [defaultEnvelopeId, setDefaultEnvelopeId] = useState<string | null>(() => {
+    // Try to load default envelope from localStorage
+    const savedDefaultEnvelope = localStorage.getItem('defaultEnvelopeId');
+    return savedDefaultEnvelope;
+  });
 
   // Initialize data on component mount
   useEffect(() => {
@@ -74,6 +81,15 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   useEffect(() => {
     localStorage.setItem('sortOption', sortOption);
   }, [sortOption]);
+  
+  // Save default envelope to localStorage whenever it changes
+  useEffect(() => {
+    if (defaultEnvelopeId) {
+      localStorage.setItem('defaultEnvelopeId', defaultEnvelopeId);
+    } else {
+      localStorage.removeItem('defaultEnvelopeId');
+    }
+  }, [defaultEnvelopeId]);
 
   // Effect to update activeNote when activeNoteId changes
   useEffect(() => {
@@ -131,12 +147,15 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Note operations
   const addNote = (title: string, content: string, envelopeId: string, labelIds: string[]) => {
+    // Use the default envelope if one isn't provided but a default is set
+    const finalEnvelopeId = envelopeId || (defaultEnvelopeId || "");
+    
     const now = new Date().toISOString();
     const newNote: Note = {
       id: uuidv4(),
       title,
       content,
-      envelopeId,
+      envelopeId: finalEnvelopeId,
       labelIds,
       createdAt: now,
       updatedAt: now,
@@ -327,6 +346,7 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         searchTerm,
         filteredNotes,
         sortOption,
+        defaultEnvelopeId,
         
         addNote,
         updateNote,
@@ -338,6 +358,7 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         updateEnvelope,
         deleteEnvelope,
         setActiveEnvelopeId,
+        setDefaultEnvelopeId,
         
         addLabel,
         updateLabel,
