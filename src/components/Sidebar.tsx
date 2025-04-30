@@ -27,8 +27,8 @@ import {
 } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { isWakuInitialized } from "@/utils/wakuSync";
-import { emit, MessageType } from "@/utils/wakuSync";
+import { isWakuInitialized, emit } from "@/utils/wakuSync";
+import { MessageType } from "@/types/note";
 
 const Sidebar = () => {
   const {
