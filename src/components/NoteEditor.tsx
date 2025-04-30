@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
-import { Calendar, Edit, Save, Trash2, Tag } from "lucide-react";
+import { Calendar, Edit, Save, Trash2, Tag, ArrowLeft } from "lucide-react";
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -28,7 +28,8 @@ const NoteEditor = () => {
     updateNote, 
     deleteNote, 
     envelopes,
-    labels
+    labels,
+    setActiveNoteId
   } = useNotes();
 
   const [isEditing, setIsEditing] = useState(false);
@@ -80,11 +81,26 @@ const NoteEditor = () => {
     );
   };
 
+  const handleBackToList = () => {
+    setActiveNoteId(null);
+  };
+
   const formattedDate = format(new Date(activeNote.createdAt), "MMM d, yyyy h:mm a");
   const noteLabels = labels.filter(label => selectedLabelIds.includes(label.id));
 
   return (
     <div className={`flex flex-col h-full ${isMobile ? "p-4" : "p-6"}`}>
+      {isMobile && (
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="mb-4 -ml-2 flex items-center" 
+          onClick={handleBackToList}
+        >
+          <ArrowLeft className="h-4 w-4 mr-1" />
+          Back to notes
+        </Button>
+      )}
       {isEditing ? (
         <div className="mb-4 flex items-center">
           <Input

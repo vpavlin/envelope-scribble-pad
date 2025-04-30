@@ -4,7 +4,7 @@ import { useNotes } from "@/context/NotesContext";
 import NoteCard from "./NoteCard";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { Plus, ArrowLeft } from "lucide-react";
+import { Plus } from "lucide-react";
 import SearchBar from "./SearchBar";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -14,7 +14,6 @@ const NoteList = () => {
     addNote, 
     activeEnvelopeId,
     activeNoteId, 
-    setActiveNoteId,
     envelopes
   } = useNotes();
 
@@ -29,23 +28,10 @@ const NoteList = () => {
     ? envelopes.find(env => env.id === activeEnvelopeId)?.name 
     : "All Notes";
 
-  const handleBackToList = () => {
-    setActiveNoteId(null);
-  };
-
   return (
     <div className="flex flex-col h-full border-r">
       <div className="p-4 border-b">
-        {isMobile && activeNoteId ? (
-          <div className="flex items-center mb-4">
-            <Button variant="ghost" onClick={handleBackToList} className="p-0 mr-2">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <h2 className="text-lg font-medium">Back to notes</h2>
-          </div>
-        ) : (
-          <h2 className="text-lg font-medium mb-4">{currentEnvelope}</h2>
-        )}
+        <h2 className="text-lg font-medium mb-4">{currentEnvelope}</h2>
         <SearchBar />
       </div>
       

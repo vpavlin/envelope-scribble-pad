@@ -1,8 +1,7 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PlusCircle, Search, Folder, Tag, Settings } from "lucide-react";
+import { PlusCircle, Search, Folder, Tag, Settings, Menu } from "lucide-react";
 import { useNotes } from "@/context/NotesContext";
 import { v4 as uuidv4 } from "uuid";
 import { Link } from "react-router-dom";
@@ -306,19 +305,8 @@ const Sidebar = () => {
       {isMobile ? (
         <Sheet open={openMobile} onOpenChange={setOpenMobile}>
           <SheetTrigger asChild>
-            <Button variant="outline" size="sm" className="fixed top-4 left-4 z-10">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-4 w-4"
-              >
-                <path d="M3 12h18M3 6h18M3 18h18" />
-              </svg>
+            <Button variant="outline" size="sm" className="fixed top-4 left-4 z-10 bg-background">
+              <Menu className="h-4 w-4" />
               <span className="sr-only">Toggle Menu</span>
             </Button>
           </SheetTrigger>
