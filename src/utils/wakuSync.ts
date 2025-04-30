@@ -102,12 +102,9 @@ export const setSyncConfig = (config: SyncConfig): void => {
 };
 
 export const emit = async <T>(type: MessageType, payload: T): Promise<boolean> => {
-  console.log("Here")
   if (!syncEnabled || !dispatcher || !encryptionKey) {
     return false;
   }
-  console.log("Herere", identity)
-  console.log(payload)
   
   try {
     await dispatcher.emit(type, payload, identity.getWallet(), encryptionKey, false);
@@ -126,10 +123,9 @@ export const subscribe = <T>(
   
   dispatcher.on(
     type,
-    async (message: any) => {
-      if (message && message.payload) {
-        console.log(message)
-        callback(message.payload);
+    async (message: T) => {
+      if (message) {
+        callback(message)
       }
     },
     true,  // verify sender

@@ -131,7 +131,6 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (dispatcher && isWakuInitialized()) {
       // Subscribe to note events
       subscribe<Note>(MessageType.NOTE_ADDED, (note) => {
-        console.log(note)
         if (!syncProcessingIds.has(note.id)) {
           setNotes(prevNotes => {
             // Only add if the note doesn't already exist
@@ -145,7 +144,6 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       });
 
       subscribe<Note>(MessageType.NOTE_UPDATED, (note) => {
-        console.log(note)
         if (!syncProcessingIds.has(note.id)) {
           setNotes(prevNotes => {
             const updatedNotes = prevNotes.map(n => n.id === note.id ? note : n);
@@ -371,7 +369,7 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (isWakuInitialized() && updatedNote) {
       syncProcessingIds.add(id);
       try {
-        console.log(await emit(MessageType.NOTE_UPDATED, updatedNote));
+        await emit(MessageType.NOTE_UPDATED, updatedNote);
       } catch (error) {
         console.error("Error syncing note update:", error);
         toast.error("Failed to sync note update to other devices");
