@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -135,6 +136,9 @@ const Sidebar = () => {
       // Force sync all envelopes
       let successCount = 0;
       for (const envelope of envelopes) {
+        // First emit an ADD message to ensure the envelope exists on other devices
+        await emit(MessageType.ENVELOPE_ADDED, envelope);
+        // Then emit an UPDATE message to ensure it has the latest data
         await emit(MessageType.ENVELOPE_UPDATED, envelope);
         successCount++;
       }
@@ -164,6 +168,9 @@ const Sidebar = () => {
       // Force sync all labels
       let successCount = 0;
       for (const label of labels) {
+        // First emit an ADD message to ensure the label exists on other devices
+        await emit(MessageType.LABEL_ADDED, label);
+        // Then emit an UPDATE message to ensure it has the latest data
         await emit(MessageType.LABEL_UPDATED, label);
         successCount++;
       }

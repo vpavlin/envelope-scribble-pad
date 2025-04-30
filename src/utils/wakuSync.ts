@@ -1,11 +1,10 @@
-
 import getDispatcher, { Dispatcher, KeyType } from "waku-dispatcher";
 import { MessageType } from "@/types/note";
 import {
   createLightNode,
 } from "@waku/sdk";
 import { wakuPeerExchangeDiscovery } from "@waku/discovery";
-import { derivePubsubTopicsFromNetworkConfig } from "@waku/utils"
+import { derivePubsubTopicsFromNetworkConfig } from "@waku/utils";
 import { Identity } from "./identity";
 
 export type SyncConfig = {
@@ -14,21 +13,21 @@ export type SyncConfig = {
 };
 
 let dispatcher: Dispatcher | null = null;
-let identity: Identity = new Identity("test", "notes-identity")
+let identity: Identity = new Identity("test", "notes-identity");
 let syncEnabled = false;
 let encryptionKey: Uint8Array | null = null;
-let initializing = false
-let initializedPromise: Promise<Dispatcher>
+let initializing = false;
+let initializedPromise: Promise<Dispatcher>;
 
 const bootstrapNodes: string[] = [
   "/dns4/waku-test.bloxy.one/tcp/8095/wss/p2p/16Uiu2HAmSZbDB7CusdRhgkD81VssRjQV5ZH13FbzCGcdnbbh6VwZ",
   "/dns4/node-01.do-ams3.waku.sandbox.status.im/tcp/8000/wss/p2p/16Uiu2HAmNaeL4p3WEYzC9mgXBmBWSgWjPHRvatZTXnp8Jgv3iKsb",
-]
+];
 
-export const DEFAULT_WAKU_CLUSTER_ID = "42"
-export const DEFAULT_WAKU_SHARD_ID = "0"
-export const WAKU_CLUSTER_ID_STORAGE_KEY = "waku-cluster-id"
-export const WAKU_SHARD_ID = "waku-shard-id"
+export const DEFAULT_WAKU_CLUSTER_ID = "42";
+export const DEFAULT_WAKU_SHARD_ID = "0";
+export const WAKU_CLUSTER_ID_STORAGE_KEY = "waku-cluster-id";
+export const WAKU_SHARD_ID = "waku-shard-id";
 
 // Function to derive content topic from password
 const deriveContentTopic = (password: string): string => {
@@ -64,13 +63,13 @@ export const generateSecurePassword = (): string => {
 };
 
 export const initializeWaku = async (password: string): Promise<Dispatcher> => {
-  if (initializing) return initializedPromise
-  console.log("initializing")
+  if (initializing) return initializedPromise;
+  console.log("initializing");
   if (!initializing && !dispatcher) {
-    initializing = true
+    initializing = true;
     initializedPromise = new Promise(async (resolve) => {
       try {
-        await identity.init()
+        await identity.init();
         // Create encryption key from password
         const encoder = new TextEncoder();
         // Use the password to create a 32-byte key (for AES-256)
@@ -82,17 +81,17 @@ export const initializeWaku = async (password: string): Promise<Dispatcher> => {
         const contentTopic = deriveContentTopic(password);
         
         // Initialize the Waku dispatcher
-        const wakuClusterId = localStorage.getItem(WAKU_CLUSTER_ID_STORAGE_KEY) || DEFAULT_WAKU_CLUSTER_ID
-        const wakuShardId = localStorage.getItem(WAKU_SHARD_ID) || DEFAULT_WAKU_SHARD_ID
-        let libp2p = undefined
-        const networkConfig =  {clusterId: parseInt(wakuClusterId), shards: [parseInt(wakuShardId)]}
+        const wakuClusterId = localStorage.getItem(WAKU_CLUSTER_ID_STORAGE_KEY) || DEFAULT_WAKU_CLUSTER_ID;
+        const wakuShardId = localStorage.getItem(WAKU_SHARD_ID) || DEFAULT_WAKU_SHARD_ID;
+        let libp2p = undefined;
+        const networkConfig =  {clusterId: parseInt(wakuClusterId), shards: [parseInt(wakuShardId)]};
         
         if (wakuClusterId != "1") {
             libp2p = {
                 peerDiscovery: [
                   wakuPeerExchangeDiscovery(derivePubsubTopicsFromNetworkConfig(networkConfig))
                 ]
-              }
+              };
         }
         const node = await createLightNode({
             networkConfig: networkConfig,
@@ -132,11 +131,14 @@ export const setSyncConfig = (config: SyncConfig): void => {
 
 export const emit = async <T>(type: MessageType, payload: T): Promise<boolean> => {
   if (!syncEnabled || !dispatcher || !encryptionKey) {
+    console.log("Sync not enabled or missing dispatcher/key");
     return false;
   }
   
   try {
+    console.log(`Emitting ${type} message:`, payload);
     await dispatcher.emit(type, payload, identity.getWallet(), encryptionKey, false);
+    console.log(`Successfully emitted ${type} message`);
     return true;
   } catch (error) {
     console.error(`Error emitting ${type}:`, error);
