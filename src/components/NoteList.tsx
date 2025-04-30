@@ -58,17 +58,19 @@ const NoteList = () => {
                 {filteredNotes.length} note{filteredNotes.length !== 1 ? "s" : ""}
               </span>
               
-              <Select value={sortOption} onValueChange={handleSortChange}>
-                <SelectTrigger className="w-[180px] h-8">
-                  <SelectValue placeholder="Sort by" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="dateNewest">Date (Newest)</SelectItem>
-                  <SelectItem value="dateOldest">Date (Oldest)</SelectItem>
-                  <SelectItem value="envelope">Envelope</SelectItem>
-                  <SelectItem value="latestComment">Latest Comment</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="relative">
+                <Select value={sortOption} onValueChange={handleSortChange}>
+                  <SelectTrigger className="w-[180px] h-8">
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent className="z-50">
+                    <SelectItem value="dateNewest">Date (Newest)</SelectItem>
+                    <SelectItem value="dateOldest">Date (Oldest)</SelectItem>
+                    <SelectItem value="envelope">Envelope</SelectItem>
+                    <SelectItem value="latestComment">Latest Comment</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             
             <Button 
