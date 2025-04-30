@@ -10,6 +10,7 @@ interface NotesContextProps {
   labels: Label[];
   activeNote: Note | null;
   activeEnvelopeId: string | null;
+  activeNoteId: string | null;
   searchTerm: string;
   filteredNotes: Note[];
   
@@ -17,6 +18,7 @@ interface NotesContextProps {
   updateNote: (id: string, updates: Partial<Omit<Note, "id">>) => void;
   deleteNote: (id: string) => void;
   setActiveNote: (note: Note | null) => void;
+  setActiveNoteId: (id: string | null) => void;
   
   addEnvelope: (name: string) => void;
   updateEnvelope: (id: string, name: string) => void;
@@ -49,6 +51,7 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [labels, setLabels] = useState<Label[]>([]);
   const [activeNote, setActiveNote] = useState<Note | null>(null);
   const [activeEnvelopeId, setActiveEnvelopeId] = useState<string | null>(null);
+  const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
   // Initialize data on component mount
@@ -59,6 +62,18 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setEnvelopes(storage.getEnvelopes());
     setLabels(storage.getLabels());
   }, []);
+
+  // Effect to update activeNote when activeNoteId changes
+  useEffect(() => {
+    if (activeNoteId) {
+      const note = notes.find(note => note.id === activeNoteId);
+      if (note) {
+        setActiveNote(note);
+      }
+    } else {
+      setActiveNote(null);
+    }
+  }, [activeNoteId, notes]);
 
   // Filter notes based on active envelope and search term
   const filteredNotes = notes.filter(note => {
@@ -263,6 +278,7 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         labels,
         activeNote,
         activeEnvelopeId,
+        activeNoteId,
         searchTerm,
         filteredNotes,
         
@@ -270,6 +286,7 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         updateNote,
         deleteNote,
         setActiveNote,
+        setActiveNoteId,
         
         addEnvelope,
         updateEnvelope,

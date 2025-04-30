@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,6 +45,7 @@ const Sidebar = () => {
   const [editingEnvelopeId, setEditingEnvelopeId] = useState<string | null>(null);
   const [editingLabelId, setEditingLabelId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [openMobile, setOpenMobile] = useState(false);
   const isMobile = useIsMobile();
 
   const handleEnvelopeSubmit = () => {
@@ -302,7 +304,7 @@ const Sidebar = () => {
   return (
     <>
       {isMobile ? (
-        <Sheet>
+        <Sheet open={openMobile} onOpenChange={setOpenMobile}>
           <SheetTrigger asChild>
             <Button variant="outline" size="sm" className="fixed top-4 left-4 z-10">
               <svg
