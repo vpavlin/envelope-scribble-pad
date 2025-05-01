@@ -1,6 +1,5 @@
 
 import React, { useEffect } from "react";
-import { NotesProvider } from "@/context/NotesContext";
 import Sidebar from "@/components/Sidebar";
 import NoteList from "@/components/NoteList";
 import NoteEditor from "@/components/NoteEditor";
@@ -48,14 +47,12 @@ const Index = () => {
   const isMobile = useIsMobile();
 
   return (
-    <NotesProvider>
-      <div className="flex flex-col h-screen bg-gray-50 md:flex-row">
-        <Sidebar />
-        <div className={`flex flex-col flex-1 ${isMobile ? "ml-0 pt-14" : "md:ml-64"}`}>
-          <NoteView />
-        </div>
+    <div className="flex flex-col h-screen bg-gray-50 md:flex-row">
+      <Sidebar />
+      <div className={`flex flex-col flex-1 ${isMobile ? "ml-0 pt-14" : "md:ml-64"}`}>
+        <NoteView />
       </div>
-    </NotesProvider>
+    </div>
   );
 };
 
