@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
+
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNotes } from "@/context/NotesContext";
 import CommentSection from "./CommentSection";
 import AISummary from "./AISummary";
@@ -8,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
-import { Calendar, Edit, Save, Trash2, Tag, ArrowLeft, Image, Upload, RefreshCw } from "lucide-react";
+import { Calendar, Trash2, Tag, ArrowLeft, Image, Upload, RefreshCw } from "lucide-react";
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -26,6 +27,34 @@ import ReactMarkdown from "react-markdown";
 import { emit, isWakuInitialized } from "@/utils/wakuSync";
 import { MessageType } from "@/types/note";
 
+// Debounce function for delaying sync
+const useDebounce = (callback: Function, delay: number) => {
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const debouncedCallback = useCallback(
+    (...args: any[]) => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+
+      timeoutRef.current = setTimeout(() => {
+        callback(...args);
+      }, delay);
+    },
+    [callback, delay]
+  );
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+
+  return debouncedCallback;
+};
+
 const NoteEditor = () => {
   const { 
     activeNote, 
@@ -40,7 +69,6 @@ const NoteEditor = () => {
 
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [envelopeId, setEnvelopeId] = useState("");
@@ -48,7 +76,16 @@ const NoteEditor = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
   const isMobile = useIsMobile();
+
+  // Auto-save debounced function
+  const debouncedSave = useDebounce(async () => {
+    if (isDirty && activeNote) {
+      await handleSave();
+      setIsDirty(false);
+    }
+  }, 2000); // 2 second delay
 
   useEffect(() => {
     if (activeNote) {
@@ -56,9 +93,16 @@ const NoteEditor = () => {
       setContent(activeNote.content);
       setEnvelopeId(activeNote.envelopeId);
       setSelectedLabelIds(activeNote.labelIds);
-      setIsEditing(false);
+      setIsDirty(false);
     }
   }, [activeNote]);
+
+  // Call debounced save whenever note content changes
+  useEffect(() => {
+    if (isDirty) {
+      debouncedSave();
+    }
+  }, [title, content, envelopeId, selectedLabelIds, isDirty]);
 
   if (isLoading) {
     return (
@@ -83,7 +127,21 @@ const NoteEditor = () => {
       envelopeId,
       labelIds: selectedLabelIds
     });
-    setIsEditing(false);
+  };
+
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setTitle(e.target.value);
+    setIsDirty(true);
+  };
+
+  const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setContent(e.target.value);
+    setIsDirty(true);
+  };
+
+  const handleEnvelopeChange = (value: string) => {
+    setEnvelopeId(value);
+    setIsDirty(true);
   };
 
   const handleDelete = async () => {
@@ -136,6 +194,7 @@ const NoteEditor = () => {
         ? prev.filter(id => id !== labelId)
         : [...prev, labelId]
     );
+    setIsDirty(true);
   };
 
   const handleBackToList = () => {
@@ -218,54 +277,34 @@ const NoteEditor = () => {
           Back to notes
         </Button>
       )}
-      {isEditing ? (
-        <div className="mb-4 flex items-center">
-          <Input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="flex-grow text-xl font-medium"
-            placeholder="Note title"
-          />
+      
+      <div className="mb-4 flex items-center justify-between">
+        <Input
+          value={title}
+          onChange={handleTitleChange}
+          className="flex-grow text-xl font-medium"
+          placeholder="Note title"
+        />
+        <div className="flex space-x-1">
           <Button 
             variant="ghost" 
             size="icon" 
-            className="ml-2"
-            onClick={handleSave}
+            onClick={() => setIsDeleteDialogOpen(true)}
           >
-            <Save className="h-5 w-5" />
+            <Trash2 className="h-5 w-5" />
           </Button>
-        </div>
-      ) : (
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className={`${isMobile ? "text-lg" : "text-xl"} font-medium truncate`}>{activeNote.title}</h2>
-          <div className="flex space-x-1">
-            <Button 
-              variant="ghost" 
+          {isWakuInitialized() && (
+            <Button
+              variant="ghost"
               size="icon"
-              onClick={() => setIsEditing(true)}
+              onClick={handleSyncNote}
+              disabled={isSyncing}
             >
-              <Edit className="h-5 w-5" />
+              <RefreshCw className={`h-5 w-5 ${isSyncing ? "animate-spin" : ""}`} />
             </Button>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => setIsDeleteDialogOpen(true)}
-            >
-              <Trash2 className="h-5 w-5" />
-            </Button>
-            {isWakuInitialized() && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleSyncNote}
-                disabled={isSyncing}
-              >
-                <RefreshCw className={`h-5 w-5 ${isSyncing ? "animate-spin" : ""}`} />
-              </Button>
-            )}
-          </div>
+          )}
         </div>
-      )}
+      </div>
       
       <div className="flex items-center text-sm text-muted-foreground mb-4">
         <Calendar className="h-4 w-4 mr-1" />
@@ -287,71 +326,69 @@ const NoteEditor = () => {
           </Badge>
         ))}
         
-        {isEditing && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="h-6">
-                <Tag className="h-3 w-3 mr-1" />
-                <span>Labels</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuLabel>Select Labels</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {labels.map(label => (
-                <DropdownMenuCheckboxItem
-                  key={label.id}
-                  checked={selectedLabelIds.includes(label.id)}
-                  onCheckedChange={() => toggleLabel(label.id)}
-                >
-                  <div className="flex items-center">
-                    <div 
-                      className="h-2 w-2 rounded-full mr-2"
-                      style={{ backgroundColor: label.color }}
-                    />
-                    {label.name}
-                  </div>
-                </DropdownMenuCheckboxItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="h-6">
+              <Tag className="h-3 w-3 mr-1" />
+              <span>Labels</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuLabel>Select Labels</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {labels.map(label => (
+              <DropdownMenuCheckboxItem
+                key={label.id}
+                checked={selectedLabelIds.includes(label.id)}
+                onCheckedChange={() => toggleLabel(label.id)}
+              >
+                <div className="flex items-center">
+                  <div 
+                    className="h-2 w-2 rounded-full mr-2"
+                    style={{ backgroundColor: label.color }}
+                  />
+                  {label.name}
+                </div>
+              </DropdownMenuCheckboxItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
       
-      {isEditing && (
-        <div className="mb-4">
-          <Select 
-            value={envelopeId}
-            onValueChange={setEnvelopeId}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select envelope" />
-            </SelectTrigger>
-            <SelectContent>
-              {envelopes.map(envelope => (
-                <SelectItem key={envelope.id} value={envelope.id}>
-                  {envelope.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
+      <div className="mb-4">
+        <Select 
+          value={envelopeId}
+          onValueChange={handleEnvelopeChange}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select envelope" />
+          </SelectTrigger>
+          <SelectContent>
+            {envelopes.map(envelope => (
+              <SelectItem key={envelope.id} value={envelope.id}>
+                {envelope.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
       
       <div className="flex-grow mb-4 overflow-auto">
-        {isEditing ? (
-          <Textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            className="resize-none h-full"
-            placeholder="Note content (supports markdown)"
-          />
-        ) : (
-          <div className="prose max-w-none">
-            <ReactMarkdown>{activeNote.content}</ReactMarkdown>
-          </div>
-        )}
+        <Textarea
+          value={content}
+          onChange={handleContentChange}
+          className="resize-none h-full min-h-[200px]"
+          placeholder="Note content (supports markdown)"
+        />
       </div>
+      
+      {/* Preview Markdown */}
+      {content && (
+        <div className="prose max-w-none mb-4 border rounded p-4 bg-gray-50">
+          <h6 className="text-xs text-muted-foreground mb-2">Preview:</h6>
+          <ReactMarkdown>{content}</ReactMarkdown>
+        </div>
+      )}
       
       {/* File Upload Interface */}
       <div className="mb-4">
@@ -405,13 +442,11 @@ const NoteEditor = () => {
       />
       
       {/* AI Summary Section */}
-      {!isEditing && (
-        <AISummary 
-          noteId={activeNote.id}
-          noteContent={activeNote.content}
-          summaries={activeNote.aiSummaries}
-        />
-      )}
+      <AISummary 
+        noteId={activeNote.id}
+        noteContent={content}
+        summaries={activeNote.aiSummaries}
+      />
       
       <CommentSection 
         noteId={activeNote.id}
