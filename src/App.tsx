@@ -20,6 +20,9 @@ const App = () => (
         <NotesProvider>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/envelope/:envelopeId" element={<Index />} />
+            <Route path="/label/:labelId" element={<Index />} />
+            <Route path="/note/:noteId" element={<Index />} />
             <Route path="/settings" element={<Settings />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

@@ -1,11 +1,10 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PlusCircle, Search, Folder, Tag, Settings, Menu, Star, RefreshCw } from "lucide-react";
 import { useNotes } from "@/context/NotesContext";
 import { v4 as uuidv4 } from "uuid";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -61,6 +60,8 @@ const Sidebar = () => {
   const [isSyncingEnvelopes, setIsSyncingEnvelopes] = useState(false);
   const [isSyncingLabels, setIsSyncingLabels] = useState(false);
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const handleEnvelopeSubmit = () => {
     if (newEnvelopeName.trim() === "") return;
@@ -246,10 +247,10 @@ const Sidebar = () => {
         </div>
         <div className="space-y-1">
           <Button
-            variant={activeEnvelopeId === null ? "secondary" : "ghost"}
+            variant={location.pathname === "/" ? "secondary" : "ghost"}
             className="w-full justify-start"
             onClick={() => {
-              setActiveEnvelopeId(null);
+              navigate("/");
               if (isMobile) {
                 setOpenMobile(false);
               }
@@ -260,10 +261,10 @@ const Sidebar = () => {
           {envelopes.map((envelope) => (
             <div key={envelope.id} className="flex items-center group">
               <Button
-                variant={activeEnvelopeId === envelope.id ? "secondary" : "ghost"}
+                variant={location.pathname === `/envelope/${envelope.id}` ? "secondary" : "ghost"}
                 className="w-full justify-start"
                 onClick={() => {
-                  setActiveEnvelopeId(envelope.id);
+                  navigate(`/envelope/${envelope.id}`);
                   if (isMobile) {
                     setOpenMobile(false);
                   }
@@ -396,9 +397,10 @@ const Sidebar = () => {
           {labels.map((label) => (
             <div key={label.id} className="flex items-center group">
               <Button 
-                variant="ghost" 
+                variant={location.pathname === `/label/${label.id}` ? "secondary" : "ghost"} 
                 className="w-full justify-start" 
                 onClick={() => {
+                  navigate(`/label/${label.id}`);
                   if (isMobile) {
                     setOpenMobile(false);
                   }
