@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect } from "react";
-import { ChevronLeft, Key, Save, RefreshCw, Eye, EyeOff, QrCode } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { ChevronLeft, Key, Save, RefreshCw, Eye, EyeOff, QrCode, FileDown, FileUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,8 +10,10 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { initializeWaku, getSyncConfig, setSyncConfig, generateSecurePassword } from "@/utils/wakuSync";
+import { exportAllData, importAllData, downloadJson, readFileAsText } from "@/utils/exportImport";
+import { useNotes } from "@/context/NotesContext";
 
 import { QRCodeSVG } from "qrcode.react";
 
@@ -21,6 +23,10 @@ const Settings = () => {
   const [syncEnabled, setSyncEnabled] = useState(false);
   const [isSyncInitializing, setIsSyncInitializing] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { notes, envelopes, labels } = useNotes();
   const isMobile = useIsMobile();
 
   useEffect(() => {
@@ -104,6 +110,94 @@ const Settings = () => {
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
+  
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      const data = await exportAllData();
+      const date = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+      downloadJson(data, `noteenvelope-export-${date}.json`);
+      toast.success("Data exported successfully");
+    } catch (error) {
+      console.error("Export error:", error);
+      toast.error("Failed to export data");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+  
+  const handleImportClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+  
+  const handleFileSelection = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    try {
+      const jsonData = await readFileAsText(file);
+      
+      // Preview the data to let the user confirm
+      const dataObj = JSON.parse(jsonData);
+      const noteCount = dataObj.notes?.length || 0;
+      const envelopeCount = dataObj.envelopes?.length || 0;
+      const labelCount = dataObj.labels?.length || 0;
+      
+      // Reset file input for future imports
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+      
+      // Show preview dialog with counts
+      document.getElementById("import-dialog-trigger")?.click();
+      
+      // Store the data in a state or ref to use when the user confirms
+      (window as any).importData = jsonData;
+      
+      // Update UI with counts
+      document.getElementById("import-notes-count")!.textContent = noteCount.toString();
+      document.getElementById("import-envelopes-count")!.textContent = envelopeCount.toString();
+      document.getElementById("import-labels-count")!.textContent = labelCount.toString();
+      
+    } catch (error) {
+      console.error("Error reading import file:", error);
+      toast.error("Invalid import file format");
+    }
+  };
+  
+  const confirmImport = async () => {
+    setIsImporting(true);
+    try {
+      const jsonData = (window as any).importData;
+      if (!jsonData) {
+        throw new Error("No import data found");
+      }
+      
+      await importAllData(jsonData);
+      toast.success("Data imported successfully");
+      
+      // Clean up
+      (window as any).importData = null;
+      
+      // Recommend refresh
+      setTimeout(() => {
+        toast("Please refresh the page to see imported data", {
+          action: {
+            label: "Refresh",
+            onClick: () => window.location.reload()
+          }
+        });
+      }, 1000);
+      
+    } catch (error) {
+      console.error("Import error:", error);
+      toast.error("Failed to import data");
+    } finally {
+      setIsImporting(false);
+    }
+  };
 
   return (
     <div className={`container ${isMobile ? "px-4 py-6" : "max-w-4xl py-10"}`}>
@@ -120,6 +214,59 @@ const Settings = () => {
       </div>
 
       <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <FileDown className="mr-2 h-5 w-5" />
+              Data Export & Import
+            </CardTitle>
+            <CardDescription>
+              Export all your data for backup or import data from another device
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm mb-2">
+                  You currently have <strong>{notes.length} notes</strong>, <strong>{envelopes.length} envelopes</strong>, and <strong>{labels.length} labels</strong>.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button 
+                    onClick={handleExport} 
+                    disabled={isExporting}
+                    className="flex items-center"
+                  >
+                    <FileDown className="mr-2 h-4 w-4" />
+                    {isExporting ? "Exporting..." : "Export All Data"}
+                  </Button>
+                  
+                  <input 
+                    type="file" 
+                    ref={fileInputRef}
+                    accept=".json"
+                    className="hidden"
+                    onChange={handleFileSelection}
+                  />
+                  
+                  <Button 
+                    variant="outline" 
+                    onClick={handleImportClick}
+                    className="flex items-center"
+                  >
+                    <FileUp className="mr-2 h-4 w-4" />
+                    Import Data
+                  </Button>
+                </div>
+              </div>
+              
+              <p className="text-xs text-muted-foreground">
+                The exported file includes all your notes, envelopes, labels, comments, and attachments.
+                You can use it to transfer your data to another device or as a backup.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
@@ -268,6 +415,33 @@ const Settings = () => {
           </CardFooter>
         </Card>
       </div>
+      
+      {/* Hidden AlertDialog for import confirmation */}
+      <AlertDialog>
+        <AlertDialogTrigger id="import-dialog-trigger" className="hidden">Open</AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Import Data</AlertDialogTitle>
+            <AlertDialogDescription>
+              You are about to import:
+              <ul className="list-disc pl-5 mt-2">
+                <li><span id="import-notes-count">0</span> notes</li>
+                <li><span id="import-envelopes-count">0</span> envelopes</li>
+                <li><span id="import-labels-count">0</span> labels</li>
+              </ul>
+              <p className="mt-2">
+                This will overwrite your existing data. Are you sure you want to proceed?
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmImport} disabled={isImporting}>
+              {isImporting ? "Importing..." : "Import"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
