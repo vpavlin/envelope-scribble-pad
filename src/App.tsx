@@ -9,7 +9,17 @@ import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import { NotesProvider } from "@/context/NotesContext";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // This ensures queries aren't garbage collected too quickly
+      // which helps when navigating between routes
+      gcTime: 1000 * 60 * 5, // 5 minutes
+      staleTime: 1000 * 60, // 1 minute
+      retry: false,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>

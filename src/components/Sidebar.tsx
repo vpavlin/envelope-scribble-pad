@@ -192,6 +192,13 @@ const Sidebar = () => {
     }
   };
 
+  const handleLabelClick = (labelId: string) => {
+    navigate(`/label/${labelId}`);
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
+
   const sidebarContent = (
     <div className="w-64 fixed left-0 top-0 h-full bg-slate-50 border-r border-gray-200 p-4 flex flex-col overflow-auto">
       <div className="mb-6">
@@ -399,12 +406,7 @@ const Sidebar = () => {
               <Button 
                 variant={location.pathname === `/label/${label.id}` ? "secondary" : "ghost"} 
                 className="w-full justify-start" 
-                onClick={() => {
-                  navigate(`/label/${label.id}`);
-                  if (isMobile) {
-                    setOpenMobile(false);
-                  }
-                }}
+                onClick={() => handleLabelClick(label.id)}
               >
                 <div
                   className="w-3 h-3 rounded-full mr-2"

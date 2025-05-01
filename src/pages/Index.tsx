@@ -46,10 +46,14 @@ const Index = () => {
   const isMobile = useIsMobile();
   const { 
     setActiveNoteId, 
+    setActiveLabelId,
     setActiveEnvelopeId, 
     notes,
     envelopes,
-    labels
+    labels,
+    activeNoteId,
+    activeEnvelopeId,
+    activeLabelId
   } = useNotes();
   const params = useParams();
   const navigate = useNavigate();
@@ -58,40 +62,62 @@ const Index = () => {
   useEffect(() => {
     // Handle envelope routes
     if (params.envelopeId) {
-      // Check if envelope exists
       const envelopeExists = envelopes.some(env => env.id === params.envelopeId);
       
       if (envelopeExists) {
         setActiveEnvelopeId(params.envelopeId);
-        setActiveNoteId(null); // Clear active note when switching to envelope view
+        // Only clear active note if we're changing envelopes
+        if (activeEnvelopeId !== params.envelopeId) {
+          setActiveNoteId(null);
+        }
+        // Clear active label when viewing an envelope
+        setActiveLabelId(null);
       } else {
-        // Redirect to home if envelope doesn't exist
-        navigate('/', { replace: true });
+        // Only redirect if envelopes have loaded (prevents redirect on initial load)
+        if (envelopes.length > 0) {
+          navigate('/', { replace: true });
+        }
       }
     } 
     
-    // Handle label routes (future implementation)
+    // Handle label routes
     else if (params.labelId) {
-      // For now, just redirect to home as we'll implement label filtering later
       const labelExists = labels.some(label => label.id === params.labelId);
-      if (!labelExists) {
-        navigate('/', { replace: true });
+      
+      if (labelExists) {
+        setActiveLabelId(params.labelId);
+        // Only clear active note if we're changing labels
+        if (activeLabelId !== params.labelId) {
+          setActiveNoteId(null);
+        }
+        // Clear active envelope when viewing by label
+        setActiveEnvelopeId(null);
+      } else {
+        // Only redirect if labels have loaded (prevents redirect on initial load)
+        if (labels.length > 0) {
+          navigate('/', { replace: true });
+        }
       }
-      // We'll implement label filtering in a future update
     } 
     
     // Handle note routes
     else if (params.noteId) {
-      // Check if note exists
+      // Find the note if it exists
       const note = notes.find(note => note.id === params.noteId);
       
       if (note) {
         setActiveNoteId(params.noteId);
-        // Also set the active envelope to the note's envelope
-        setActiveEnvelopeId(note.envelopeId || null);
+        // Also set the active envelope to the note's envelope if it has one
+        if (note.envelopeId) {
+          setActiveEnvelopeId(note.envelopeId);
+        }
+        // Clear active label when viewing a specific note
+        setActiveLabelId(null);
       } else {
-        // Redirect to home if note doesn't exist
-        navigate('/', { replace: true });
+        // Only redirect if notes have loaded (prevents redirect on initial load)
+        if (notes.length > 0) {
+          navigate('/', { replace: true });
+        }
       }
     } 
     
@@ -99,8 +125,20 @@ const Index = () => {
     else {
       // Clear active filters if on home page
       setActiveEnvelopeId(null);
+      setActiveLabelId(null);
     }
-  }, [params, notes, envelopes, labels, setActiveNoteId, setActiveEnvelopeId, navigate]);
+  }, [
+    params, 
+    notes, 
+    envelopes, 
+    labels, 
+    setActiveNoteId, 
+    setActiveEnvelopeId, 
+    setActiveLabelId, 
+    navigate,
+    activeEnvelopeId,
+    activeLabelId
+  ]);
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 md:flex-row">
