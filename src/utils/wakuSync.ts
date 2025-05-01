@@ -107,6 +107,7 @@ export const initializeWaku = async (password: string): Promise<Dispatcher> => {
           // Register the encryption key
           dispatcher.registerKey(encryptionKey, KeyType.Symmetric, true);
           syncEnabled = true;
+
           resolve(dispatcher);
         }
       } catch (error) {

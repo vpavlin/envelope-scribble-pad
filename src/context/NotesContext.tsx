@@ -232,6 +232,8 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       });
 
       console.log("Dispatcher ready")
+      dispatcher.dispatchQuery()
+
     }
   }, [dispatcher]);
 
