@@ -53,10 +53,7 @@ export const importAllData = async (jsonData: string): Promise<void> => {
       throw new Error("Invalid import data format");
     }
     
-    // Import all data
-    await storage.saveNotes(importData.notes);
-    await storage.saveEnvelopes(importData.envelopes);
-    await storage.saveLabels(importData.labels);
+    console.log("Importing data:", importData);
     
     // Process attachments for imported notes (recreate object URLs)
     for (const note of importData.notes) {
@@ -64,21 +61,52 @@ export const importAllData = async (jsonData: string): Promise<void> => {
         for (const attachment of note.attachments) {
           if (attachment.content) {
             try {
-              // Recreate blob URL for each attachment
-              const blob = await fetch(attachment.content).then(res => res.blob());
+              // Create a blob from base64 content
+              const base64Content = attachment.content;
+              // Extract the base64 data part if it's a data URL
+              const base64Data = base64Content.includes('base64,') 
+                ? base64Content.split('base64,')[1] 
+                : base64Content;
+              
+              // Convert to binary
+              const binary = atob(base64Data);
+              
+              // Create array buffer
+              const array = new Uint8Array(binary.length);
+              for (let i = 0; i < binary.length; i++) {
+                array[i] = binary.charCodeAt(i);
+              }
+              
+              // Create blob and object URL
+              const blob = new Blob([array], { type: attachment.type || 'application/octet-stream' });
               attachment.url = URL.createObjectURL(blob);
+              console.log("Created blob URL for attachment:", attachment.name);
             } catch (error) {
               console.error("Error creating blob URL for attachment:", error);
+              // Provide a fallback URL
+              attachment.url = attachment.url || '';
             }
           }
         }
       }
+      
+      // Ensure all notes have attachments array
+      note.attachments = note.attachments || [];
+      
+      // Ensure all notes have comments array
+      note.comments = note.comments || [];
     }
     
+    // Import all data
+    await storage.saveNotes(importData.notes);
+    await storage.saveEnvelopes(importData.envelopes);
+    await storage.saveLabels(importData.labels);
+    
+    console.log("Import completed successfully");
     return;
   } catch (error) {
     console.error("Error importing data:", error);
-    throw new Error("Failed to import data");
+    throw new Error("Failed to import data: " + (error as Error).message);
   }
 };
 
