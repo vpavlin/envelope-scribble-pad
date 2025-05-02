@@ -14,6 +14,7 @@ interface NotesContextProps {
   activeNote: Note | null;
   activeEnvelopeId: string | null;
   activeNoteId: string | null;
+  activeLabelId: string | null;
   searchTerm: string;
   filteredNotes: Note[];
   sortOption: SortOptions;
@@ -35,6 +36,7 @@ interface NotesContextProps {
   addLabel: (name: string, color: string) => Promise<void>;
   updateLabel: (id: string, name: string, color: string) => Promise<void>;
   deleteLabel: (id: string) => Promise<void>;
+  setActiveLabelId: (id: string | null) => void;
   
   addComment: (noteId: string, content: string) => Promise<void>;
   deleteComment: (noteId: string, commentId: string) => Promise<void>;
@@ -63,6 +65,7 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [activeNote, setActiveNote] = useState<Note | null>(null);
   const [activeEnvelopeId, setActiveEnvelopeId] = useState<string | null>(null);
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
+  const [activeLabelId, setActiveLabelId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [dispatcher, setDispatcher] = useState<Dispatcher | null>()
@@ -695,6 +698,7 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         activeNote,
         activeEnvelopeId,
         activeNoteId,
+        activeLabelId,
         searchTerm,
         filteredNotes,
         sortOption,
@@ -716,6 +720,7 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         addLabel,
         updateLabel,
         deleteLabel,
+        setActiveLabelId,
         
         addComment,
         deleteComment,

@@ -60,73 +60,80 @@ const Index = () => {
 
   // Handle URL parameters on component mount and when they change
   useEffect(() => {
-    // Handle envelope routes
-    if (params.envelopeId) {
-      const envelopeExists = envelopes.some(env => env.id === params.envelopeId);
-      
-      if (envelopeExists) {
-        setActiveEnvelopeId(params.envelopeId);
-        // Only clear active note if we're changing envelopes
-        if (activeEnvelopeId !== params.envelopeId) {
-          setActiveNoteId(null);
+    const handleRouting = async () => {
+      try {
+        console.log("Routing params:", params);
+        console.log("Current state:", { activeNoteId, activeEnvelopeId, activeLabelId });
+        
+        // Handle envelope routes
+        if (params.envelopeId) {
+          console.log("Handling envelope route:", params.envelopeId);
+          const envelopeExists = envelopes.some(env => env.id === params.envelopeId);
+          
+          if (envelopeExists) {
+            setActiveEnvelopeId(params.envelopeId);
+            // Only clear active note if we're changing envelopes
+            if (activeEnvelopeId !== params.envelopeId) {
+              setActiveNoteId(null);
+            }
+            // Clear active label when viewing an envelope
+            setActiveLabelId(null);
+          } else {
+            // Only redirect if envelopes have loaded (prevents redirect on initial load)
+            if (envelopes.length > 0) {
+              navigate('/', { replace: true });
+            }
+          }
+        } 
+        
+        // Handle label routes
+        else if (params.labelId) {
+          console.log("Handling label route:", params.labelId);
+          const labelExists = labels.some(label => label.id === params.labelId);
+          
+          if (labelExists) {
+            setActiveLabelId(params.labelId);
+            // Only clear active note if we're changing labels
+            if (activeLabelId !== params.labelId) {
+              setActiveNoteId(null);
+            }
+            // Clear active envelope when viewing by label
+            setActiveEnvelopeId(null);
+          } else {
+            // Only redirect if labels have loaded (prevents redirect on initial load)
+            if (labels.length > 0) {
+              navigate('/', { replace: true });
+            }
+          }
+        } 
+        
+        // Handle note routes
+        else if (params.noteId) {
+          console.log("Handling note route:", params.noteId);
+          // Find the note if it exists
+          const note = notes.find(note => note.id === params.noteId);
+          
+          if (note) {
+            setActiveNoteId(params.noteId);
+            // Also set the active envelope to the note's envelope if it has one
+            if (note.envelopeId) {
+              setActiveEnvelopeId(note.envelopeId);
+            }
+            // Clear active label when viewing a specific note
+            setActiveLabelId(null);
+          } else {
+            // Only redirect if notes have loaded (prevents redirect on initial load)
+            if (notes.length > 0) {
+              navigate('/', { replace: true });
+            }
+          }
         }
-        // Clear active label when viewing an envelope
-        setActiveLabelId(null);
-      } else {
-        // Only redirect if envelopes have loaded (prevents redirect on initial load)
-        if (envelopes.length > 0) {
-          navigate('/', { replace: true });
-        }
+      } catch (error) {
+        console.error("Error in routing logic:", error);
       }
-    } 
+    };
     
-    // Handle label routes
-    else if (params.labelId) {
-      const labelExists = labels.some(label => label.id === params.labelId);
-      
-      if (labelExists) {
-        setActiveLabelId(params.labelId);
-        // Only clear active note if we're changing labels
-        if (activeLabelId !== params.labelId) {
-          setActiveNoteId(null);
-        }
-        // Clear active envelope when viewing by label
-        setActiveEnvelopeId(null);
-      } else {
-        // Only redirect if labels have loaded (prevents redirect on initial load)
-        if (labels.length > 0) {
-          navigate('/', { replace: true });
-        }
-      }
-    } 
-    
-    // Handle note routes
-    else if (params.noteId) {
-      // Find the note if it exists
-      const note = notes.find(note => note.id === params.noteId);
-      
-      if (note) {
-        setActiveNoteId(params.noteId);
-        // Also set the active envelope to the note's envelope if it has one
-        if (note.envelopeId) {
-          setActiveEnvelopeId(note.envelopeId);
-        }
-        // Clear active label when viewing a specific note
-        setActiveLabelId(null);
-      } else {
-        // Only redirect if notes have loaded (prevents redirect on initial load)
-        if (notes.length > 0) {
-          navigate('/', { replace: true });
-        }
-      }
-    } 
-    
-    // Handle root route
-    else {
-      // Clear active filters if on home page
-      setActiveEnvelopeId(null);
-      setActiveLabelId(null);
-    }
+    handleRouting();
   }, [
     params, 
     notes, 
@@ -137,7 +144,8 @@ const Index = () => {
     setActiveLabelId, 
     navigate,
     activeEnvelopeId,
-    activeLabelId
+    activeLabelId,
+    activeNoteId
   ]);
 
   return (
