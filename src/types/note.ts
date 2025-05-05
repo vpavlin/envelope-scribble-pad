@@ -37,6 +37,18 @@ export type Note = {
   comments: Comment[];
   aiSummaries?: AISummary[];
   attachments: Attachment[];
+  version: number; // Version counter for conflict resolution
+  previousVersions?: NoteVersion[]; // Optional history of previous versions
+};
+
+export type NoteVersion = {
+  title: string;
+  content: string;
+  envelopeId: string;
+  labelIds: string[];
+  updatedAt: string;
+  version: number;
+  deviceId?: string; // Identifier of the device that made the change
 };
 
 export type Envelope = {
@@ -56,4 +68,5 @@ export enum MessageType {
   LABEL_ADDED = "label_added",
   LABEL_UPDATED = "label_updated",
   LABEL_DELETED = "label_deleted",
+  CONFLICT_DETECTED = "conflict_detected",
 }

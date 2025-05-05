@@ -37,6 +37,14 @@ export const getNotes = async (): Promise<Note[]> => {
     if (notes.length === 0) {
       const migratedNotes = await migrateFromLocalStorage<Note>("notes", NOTES_STORE);
       
+      // Add versioning information to migrated notes
+      migratedNotes.forEach(note => {
+        if (note.version === undefined) {
+          note.version = 1;
+          note.previousVersions = [];
+        }
+      });
+      
       // Process attachments (create ObjectURLs for any that have content)
       for (const note of migratedNotes) {
         if (note.attachments) {
@@ -55,6 +63,14 @@ export const getNotes = async (): Promise<Note[]> => {
       
       return migratedNotes;
     }
+    
+    // Ensure all notes have version information
+    notes.forEach(note => {
+      if (note.version === undefined) {
+        note.version = 1;
+        note.previousVersions = [];
+      }
+    });
     
     // Process attachments for notes from IndexedDB
     for (const note of notes) {
@@ -321,14 +337,18 @@ export const initializeStorage = async (): Promise<void> => {
               createdAt: currentDate
             }
           ],
-          attachments: []
+          attachments: [],
+          version: 1,
+          previousVersions: []
         }
       ]);
     } else {
-      // Ensure any existing notes have attachments array
+      // Ensure any existing notes have attachments array and version info
       const updatedNotes = notes.map(note => ({
         ...note,
-        attachments: note.attachments || []
+        attachments: note.attachments || [],
+        version: note.version || 1,
+        previousVersions: note.previousVersions || []
       }));
       await saveNotes(updatedNotes);
     }

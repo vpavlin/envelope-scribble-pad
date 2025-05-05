@@ -1,15 +1,15 @@
-
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNotes } from "@/context/NotesContext";
 import CommentSection from "./CommentSection";
 import AISummary from "./AISummary";
 import AttachmentList from "./AttachmentList";
+import NoteHistory from "./NoteHistory";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
-import { Calendar, Trash2, Tag, ArrowLeft, Image, Upload, RefreshCw } from "lucide-react";
+import { Calendar, Trash2, Tag, ArrowLeft, Image, Upload, RefreshCw, Clock } from "lucide-react";
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -286,6 +286,18 @@ const NoteEditor = () => {
           placeholder="Note title"
         />
         <div className="flex space-x-1">
+          {/* Add version info if available */}
+          {activeNote.version && activeNote.version > 1 && (
+            <div className="text-xs text-muted-foreground px-2 py-1 flex items-center">
+              <span>v{activeNote.version}</span>
+            </div>
+          )}
+          
+          {/* Only show history button if there are previous versions */}
+          {activeNote.previousVersions && activeNote.previousVersions.length > 0 && (
+            <NoteHistory noteId={activeNote.id} />
+          )}
+          
           <Button 
             variant="ghost" 
             size="icon" 
@@ -293,6 +305,7 @@ const NoteEditor = () => {
           >
             <Trash2 className="h-5 w-5" />
           </Button>
+          
           {isWakuInitialized() && (
             <Button
               variant="ghost"

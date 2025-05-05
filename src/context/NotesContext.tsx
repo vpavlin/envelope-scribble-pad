@@ -1,11 +1,15 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
-import { Note, Envelope, Label, Comment, SortOptions, Attachment, MessageType } from "@/types/note";
+import { Note, NoteVersion, Envelope, Label, Comment, SortOptions, Attachment, MessageType } from "@/types/note";
 import * as storage from "@/utils/storage";
 import * as indexedDb from "@/utils/indexedDb";
 import { emit, subscribe, isWakuInitialized, initializeWaku, getSyncConfig } from "@/utils/wakuSync";
 import { toast } from "@/components/ui/sonner";
 import { Dispatcher } from "waku-dispatcher";
+import { Identity } from "@/utils/identity";
+
+// Generate a unique device ID for conflict resolution
+const DEVICE_ID = uuidv4();
 
 interface NotesContextProps {
   notes: Note[];
@@ -46,6 +50,9 @@ interface NotesContextProps {
   
   setSearchTerm: (term: string) => void;
   sortNotes: (sortOption: SortOptions) => void;
+  
+  viewNoteHistory: (noteId: string) => NoteVersion[] | undefined;
+  restoreNoteVersion: (noteId: string, version: number) => Promise<void>;
 }
 
 const NotesContext = createContext<NotesContextProps | undefined>(undefined);
@@ -80,6 +87,32 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return savedDefaultEnvelope;
   });
   const [syncProcessingIds] = useState<Set<string>>(new Set());
+
+  // Added function to view note history
+  const viewNoteHistory = (noteId: string) => {
+    const note = notes.find(n => n.id === noteId);
+    return note?.previousVersions;
+  };
+
+  // Added function to restore a previous version
+  const restoreNoteVersion = async (noteId: string, version: number) => {
+    const note = notes.find(n => n.id === noteId);
+    if (!note || !note.previousVersions) return;
+
+    const versionToRestore = note.previousVersions.find(v => v.version === version);
+    if (!versionToRestore) return;
+
+    // Create a new version based on the old one but with incremented version number
+    await updateNote(noteId, {
+      title: versionToRestore.title,
+      content: versionToRestore.content,
+      envelopeId: versionToRestore.envelopeId,
+      labelIds: versionToRestore.labelIds,
+      // Version and updatedAt will be handled by updateNote
+    });
+
+    toast.success("Previous version restored successfully");
+  };
 
   // Initialize data on component mount
   useEffect(() => {
@@ -129,6 +162,69 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     initializeSync();
   }, []);
 
+  // Modify updateNote to handle versioning and conflict resolution
+  const updateNote = async (id: string, updates: Partial<Omit<Note, "id">>) => {
+    let updatedNote: Note | null = null;
+    
+    const updatedNotes = notes.map(note => {
+      if (note.id === id) {
+        // Setup versioning
+        const currentVersion = note.version || 0;
+        const newVersion = currentVersion + 1;
+        
+        // Create a version record of the current state before updating
+        const versionRecord: NoteVersion = {
+          title: note.title,
+          content: note.content,
+          envelopeId: note.envelopeId,
+          labelIds: [...note.labelIds],
+          updatedAt: note.updatedAt,
+          version: currentVersion,
+          deviceId: DEVICE_ID
+        };
+        
+        // Store up to 10 previous versions
+        const previousVersions = note.previousVersions || [];
+        if (previousVersions.length >= 10) {
+          previousVersions.shift(); // Remove oldest version
+        }
+        previousVersions.push(versionRecord);
+        
+        const noteWithUpdates = {
+          ...note,
+          ...updates,
+          version: newVersion,
+          previousVersions,
+          updatedAt: new Date().toISOString()
+        };
+        
+        if (activeNote?.id === id) {
+          setActiveNote(noteWithUpdates);
+        }
+        
+        updatedNote = noteWithUpdates;
+        return noteWithUpdates;
+      }
+      return note;
+    });
+
+    await storage.saveNotes(updatedNotes);
+    setNotes(updatedNotes);
+    
+    // Sync update to other devices
+    if (isWakuInitialized() && updatedNote) {
+      syncProcessingIds.add(id);
+      try {
+        await emit(MessageType.NOTE_UPDATED, updatedNote);
+      } catch (error) {
+        console.error("Error syncing note update:", error);
+        toast.error("Failed to sync note update to other devices");
+      } finally {
+        syncProcessingIds.delete(id);
+      }
+    }
+  };
+
   // Initialize Waku subscriptions
   useEffect(() => {
     if (dispatcher && isWakuInitialized()) {
@@ -146,12 +242,120 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
       });
 
-      subscribe<Note>(MessageType.NOTE_UPDATED, (note) => {
-        if (!syncProcessingIds.has(note.id)) {
+      subscribe<Note>(MessageType.NOTE_UPDATED, (receivedNote) => {
+        if (!syncProcessingIds.has(receivedNote.id)) {
           setNotes(prevNotes => {
-            const updatedNotes = prevNotes.map(n => n.id === note.id ? note : n);
-            storage.updateNote(note);
-            return updatedNotes;
+            const localNote = prevNotes.find(n => n.id === receivedNote.id);
+            
+            // If we don't have this note locally, just add it
+            if (!localNote) {
+              storage.updateNote(receivedNote);
+              return [...prevNotes, receivedNote];
+            }
+            
+            // Check for conflicts (both devices modified since last sync)
+            const localVersion = localNote.version || 0;
+            const receivedVersion = receivedNote.version || 0;
+            const localDate = new Date(localNote.updatedAt).getTime();
+            const receivedDate = new Date(receivedNote.updatedAt).getTime();
+            
+            // Conflict detected: same version number but different content
+            if (localVersion === receivedVersion && 
+                (localNote.title !== receivedNote.title || 
+                 localNote.content !== receivedNote.content)) {
+              
+              // Last-write-wins: use the most recent update by timestamp
+              if (receivedDate > localDate) {
+                // Received note is newer - create version from local note first
+                if (!receivedNote.previousVersions) receivedNote.previousVersions = [];
+                
+                // Only add local version if it doesn't already exist in history
+                const localVersionExists = receivedNote.previousVersions.some(
+                  v => v.version === localVersion && v.deviceId === DEVICE_ID
+                );
+                
+                if (!localVersionExists) {
+                  const localVersionRecord: NoteVersion = {
+                    title: localNote.title,
+                    content: localNote.content,
+                    envelopeId: localNote.envelopeId,
+                    labelIds: [...localNote.labelIds],
+                    updatedAt: localNote.updatedAt,
+                    version: localVersion,
+                    deviceId: DEVICE_ID
+                  };
+                  
+                  // Keep up to 10 versions
+                  if (receivedNote.previousVersions.length >= 10) {
+                    receivedNote.previousVersions.shift();
+                  }
+                  
+                  receivedNote.previousVersions.push(localVersionRecord);
+                }
+                
+                // Use received note (the newer one)
+                storage.updateNote(receivedNote);
+                
+                // Notify user about the conflict
+                toast({
+                  title: "Note Conflict Detected",
+                  description: "This note was modified elsewhere. The most recent version is shown, but you can view history to see your changes.",
+                  duration: 5000,
+                });
+                
+                return prevNotes.map(n => n.id === receivedNote.id ? receivedNote : n);
+              } else {
+                // Local note is newer - keep it but store received version in history
+                const updatedLocalNote = { ...localNote };
+                
+                if (!updatedLocalNote.previousVersions) updatedLocalNote.previousVersions = [];
+                
+                // Only add remote version if it doesn't already exist
+                const remoteVersionExists = updatedLocalNote.previousVersions.some(
+                  v => v.version === receivedVersion && v.deviceId === receivedNote.deviceId
+                );
+                
+                if (!remoteVersionExists) {
+                  const remoteVersionRecord: NoteVersion = {
+                    title: receivedNote.title,
+                    content: receivedNote.content,
+                    envelopeId: receivedNote.envelopeId,
+                    labelIds: [...receivedNote.labelIds],
+                    updatedAt: receivedNote.updatedAt,
+                    version: receivedVersion,
+                    deviceId: receivedNote.deviceId
+                  };
+                  
+                  // Keep up to 10 versions
+                  if (updatedLocalNote.previousVersions.length >= 10) {
+                    updatedLocalNote.previousVersions.shift();
+                  }
+                  
+                  updatedLocalNote.previousVersions.push(remoteVersionRecord);
+                }
+                
+                storage.updateNote(updatedLocalNote);
+                
+                // Notify user about the conflict
+                toast({
+                  title: "Note Conflict Detected",
+                  description: "Your local changes were kept. A conflicting remote version has been added to history.",
+                  duration: 5000,
+                });
+                
+                return prevNotes.map(n => n.id === updatedLocalNote.id ? updatedLocalNote : n);
+              }
+            } 
+            // No conflict or remote version is newer
+            else if (receivedVersion > localVersion) {
+              // Straightforward update - newer version
+              storage.updateNote(receivedNote);
+              return prevNotes.map(n => n.id === receivedNote.id ? receivedNote : n);
+            } 
+            // Local version is newer, keep it
+            else {
+              return prevNotes;
+            }
           });
         }
       });
@@ -240,6 +444,46 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [dispatcher]);
 
+  // Modify addNote to include version information
+  const addNote = async (title: string, content: string, envelopeId: string, labelIds: string[]) => {
+    // Use the default envelope if one isn't provided but a default is set
+    const finalEnvelopeId = envelopeId || (defaultEnvelopeId || "");
+    
+    const now = new Date().toISOString();
+    const newNote: Note = {
+      id: uuidv4(),
+      title,
+      content,
+      envelopeId: finalEnvelopeId,
+      labelIds,
+      createdAt: now,
+      updatedAt: now,
+      comments: [],
+      attachments: [],
+      version: 1,  // Start at version 1
+      previousVersions: []  // Initialize empty version history
+    };
+
+    // Add to local storage
+    await storage.addNote(newNote);
+    setNotes(prev => [...prev, newNote]);
+    setActiveNote(newNote);
+    setActiveNoteId(newNote.id);
+    
+    // Sync to other devices
+    if (isWakuInitialized()) {
+      syncProcessingIds.add(newNote.id);
+      try {
+        await emit(MessageType.NOTE_ADDED, newNote);
+      } catch (error) {
+        console.error("Error syncing new note:", error);
+        toast.error("Failed to sync new note to other devices");
+      } finally {
+        syncProcessingIds.delete(newNote.id);
+      }
+    }
+  };
+
   // Save sort option to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem('sortOption', sortOption);
@@ -307,82 +551,6 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
     }
   });
-
-  // Note operations
-  const addNote = async (title: string, content: string, envelopeId: string, labelIds: string[]) => {
-    // Use the default envelope if one isn't provided but a default is set
-    const finalEnvelopeId = envelopeId || (defaultEnvelopeId || "");
-    
-    const now = new Date().toISOString();
-    const newNote: Note = {
-      id: uuidv4(),
-      title,
-      content,
-      envelopeId: finalEnvelopeId,
-      labelIds,
-      createdAt: now,
-      updatedAt: now,
-      comments: [],
-      attachments: []
-    };
-
-    // Add to local storage
-    await storage.addNote(newNote);
-    setNotes(prev => [...prev, newNote]);
-    setActiveNote(newNote);
-    setActiveNoteId(newNote.id);
-    
-    // Sync to other devices
-    if (isWakuInitialized()) {
-      syncProcessingIds.add(newNote.id);
-      try {
-        await emit(MessageType.NOTE_ADDED, newNote);
-      } catch (error) {
-        console.error("Error syncing new note:", error);
-        toast.error("Failed to sync new note to other devices");
-      } finally {
-        syncProcessingIds.delete(newNote.id);
-      }
-    }
-  };
-
-  const updateNote = async (id: string, updates: Partial<Omit<Note, "id">>) => {
-    let updatedNote: Note | null = null;
-    
-    const updatedNotes = notes.map(note => {
-      if (note.id === id) {
-        const noteWithUpdates = {
-          ...note,
-          ...updates,
-          updatedAt: new Date().toISOString()
-        };
-        
-        if (activeNote?.id === id) {
-          setActiveNote(noteWithUpdates);
-        }
-        
-        updatedNote = noteWithUpdates;
-        return noteWithUpdates;
-      }
-      return note;
-    });
-
-    await storage.saveNotes(updatedNotes);
-    setNotes(updatedNotes);
-    
-    // Sync update to other devices
-    if (isWakuInitialized() && updatedNote) {
-      syncProcessingIds.add(id);
-      try {
-        await emit(MessageType.NOTE_UPDATED, updatedNote);
-      } catch (error) {
-        console.error("Error syncing note update:", error);
-        toast.error("Failed to sync note update to other devices");
-      } finally {
-        syncProcessingIds.delete(id);
-      }
-    }
-  };
 
   const deleteNote = async (id: string) => {
     await storage.deleteNote(id);
@@ -729,7 +897,10 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         deleteAttachment,
         
         setSearchTerm,
-        sortNotes
+        sortNotes,
+        
+        viewNoteHistory,
+        restoreNoteVersion
       }}
     >
       {children}
