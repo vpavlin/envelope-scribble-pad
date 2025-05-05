@@ -39,6 +39,7 @@ export type Note = {
   attachments: Attachment[];
   version: number; // Version counter for conflict resolution
   previousVersions?: NoteVersion[]; // Optional history of previous versions
+  deviceId?: string; // Added deviceId as an optional property
 };
 
 export type NoteVersion = {
