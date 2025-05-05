@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
-import { Calendar, Trash2, Tag, ArrowLeft, Image, Upload, RefreshCw, Clock } from "lucide-react";
+import { Calendar, Trash2, Tag, ArrowLeft, Image, Upload, RefreshCcw, Clock, ArrowDownUp } from "lucide-react";
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -287,11 +287,17 @@ const NoteEditor = () => {
         />
         <div className="flex space-x-1">
           {/* Add version info if available */}
-          {activeNote.version && activeNote.version > 1 && (
-            <div className="text-xs text-muted-foreground px-2 py-1 flex items-center">
+          <div className="text-xs text-muted-foreground px-2 py-1 flex items-center">
+            {activeNote.version && activeNote.version > 1 && (
               <span>v{activeNote.version}</span>
-            </div>
-          )}
+            )}
+            {activeNote.restoredFrom && (
+              <div className="flex items-center text-xs text-blue-500 ml-2">
+                <ArrowDownUp className="h-3 w-3 mr-1" />
+                <span>Restored from v{activeNote.restoredFrom}</span>
+              </div>
+            )}
+          </div>
           
           {/* Only show history button if there are previous versions */}
           {activeNote.previousVersions && activeNote.previousVersions.length > 0 && (
@@ -441,7 +447,7 @@ const NoteEditor = () => {
               disabled={isSyncing}
               className="flex items-center"
             >
-              <RefreshCw className={`h-4 w-4 mr-1 ${isSyncing ? "animate-spin" : ""}`} />
+              <RefreshCcw className={`h-4 w-4 mr-1 ${isSyncing ? "animate-spin" : ""}`} />
               <span>Sync Note</span>
             </Button>
           )}

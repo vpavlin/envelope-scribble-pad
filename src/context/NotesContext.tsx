@@ -7,6 +7,7 @@ import { emit, subscribe, isWakuInitialized, initializeWaku, getSyncConfig } fro
 import { toast } from "@/components/ui/sonner";
 import { Dispatcher } from "waku-dispatcher";
 import { Identity } from "@/utils/identity";
+import { hashNoteContent, findVersionWithSameContent } from "@/utils/contentHash";
 
 // Generate a unique device ID for conflict resolution
 const DEVICE_ID = uuidv4();
@@ -94,7 +95,7 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return note?.previousVersions;
   };
 
-  // Added function to restore a previous version
+  // Updated function to restore a previous version with content hash check
   const restoreNoteVersion = async (noteId: string, version: number) => {
     const note = notes.find(n => n.id === noteId);
     if (!note || !note.previousVersions) return;
@@ -102,16 +103,30 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const versionToRestore = note.previousVersions.find(v => v.version === version);
     if (!versionToRestore) return;
 
+    // Generate hash for the restored content
+    const contentHash = hashNoteContent(versionToRestore.title, versionToRestore.content);
+    
+    // Check if we already have a version with this exact content
+    const existingVersion = findVersionWithSameContent(note.previousVersions, contentHash);
+    
+    // If we're already on this exact content, no need to create a new version
+    if (note.contentHash === contentHash) {
+      toast("This version is identical to the current version");
+      return;
+    }
+    
     // Create a new version based on the old one but with incremented version number
     await updateNote(noteId, {
       title: versionToRestore.title,
       content: versionToRestore.content,
       envelopeId: versionToRestore.envelopeId,
       labelIds: versionToRestore.labelIds,
+      contentHash: contentHash,
       // Version and updatedAt will be handled by updateNote
+      restoredFrom: versionToRestore.version
     });
 
-    toast.success("Previous version restored successfully");
+    toast("Previous version restored successfully");
   };
 
   // Initialize data on component mount
@@ -162,7 +177,7 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     initializeSync();
   }, []);
 
-  // Modify updateNote to handle versioning and conflict resolution
+  // Modify updateNote to handle versioning, conflict resolution, and content hashing
   const updateNote = async (id: string, updates: Partial<Omit<Note, "id">>) => {
     let updatedNote: Note | null = null;
     
@@ -172,38 +187,79 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         const currentVersion = note.version || 0;
         const newVersion = currentVersion + 1;
         
-        // Create a version record of the current state before updating
-        const versionRecord: NoteVersion = {
-          title: note.title,
-          content: note.content,
-          envelopeId: note.envelopeId,
-          labelIds: [...note.labelIds],
-          updatedAt: note.updatedAt,
-          version: currentVersion,
-          deviceId: DEVICE_ID
-        };
+        // Generate content hash if not provided
+        const contentHash = updates.contentHash || 
+          hashNoteContent(
+            updates.title || note.title,
+            updates.content || note.content
+          );
         
-        // Store up to 10 previous versions
-        const previousVersions = note.previousVersions || [];
-        if (previousVersions.length >= 10) {
-          previousVersions.shift(); // Remove oldest version
+        // Check if this exact content already exists in version history
+        const existingVersion = findVersionWithSameContent(
+          note.previousVersions, 
+          contentHash
+        );
+        
+        // If this is a completely new content version or we're explicitly restoring
+        if (!existingVersion || updates.restoredFrom !== undefined) {
+          // Create a version record of the current state before updating
+          const versionRecord: NoteVersion = {
+            title: note.title,
+            content: note.content,
+            envelopeId: note.envelopeId,
+            labelIds: [...note.labelIds],
+            updatedAt: note.updatedAt,
+            version: currentVersion,
+            deviceId: DEVICE_ID,
+            contentHash: note.contentHash
+          };
+          
+          // Store up to 10 previous versions
+          const previousVersions = note.previousVersions || [];
+          if (previousVersions.length >= 10) {
+            previousVersions.shift(); // Remove oldest version
+          }
+          
+          // Only add if this isn't a duplicate of the last version
+          const lastVersion = previousVersions[previousVersions.length - 1];
+          if (!lastVersion || lastVersion.contentHash !== versionRecord.contentHash) {
+            previousVersions.push(versionRecord);
+          }
+          
+          const noteWithUpdates = {
+            ...note,
+            ...updates,
+            version: newVersion,
+            previousVersions,
+            updatedAt: new Date().toISOString(),
+            contentHash,
+            restoredFrom: updates.restoredFrom
+          };
+          
+          if (activeNote?.id === id) {
+            setActiveNote(noteWithUpdates);
+          }
+          
+          updatedNote = noteWithUpdates;
+          return noteWithUpdates;
+        } else {
+          // This exact content already exists in history
+          // We'll just reference it without creating a new version
+          toast(`Note updated to match version ${existingVersion.version}`);
+          
+          const noteWithUpdates = {
+            ...note,
+            ...updates,
+            contentHash,
+          };
+          
+          if (activeNote?.id === id) {
+            setActiveNote(noteWithUpdates);
+          }
+          
+          updatedNote = noteWithUpdates;
+          return noteWithUpdates;
         }
-        previousVersions.push(versionRecord);
-        
-        const noteWithUpdates = {
-          ...note,
-          ...updates,
-          version: newVersion,
-          previousVersions,
-          updatedAt: new Date().toISOString()
-        };
-        
-        if (activeNote?.id === id) {
-          setActiveNote(noteWithUpdates);
-        }
-        
-        updatedNote = noteWithUpdates;
-        return noteWithUpdates;
       }
       return note;
     });
@@ -282,7 +338,8 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                     labelIds: [...localNote.labelIds],
                     updatedAt: localNote.updatedAt,
                     version: localVersion,
-                    deviceId: DEVICE_ID
+                    deviceId: DEVICE_ID,
+                    contentHash: localNote.contentHash
                   };
                   
                   // Keep up to 10 versions
@@ -319,7 +376,8 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                     labelIds: [...receivedNote.labelIds],
                     updatedAt: receivedNote.updatedAt,
                     version: receivedVersion,
-                    deviceId: receivedNote.deviceId
+                    deviceId: receivedNote.deviceId,
+                    contentHash: receivedNote.contentHash
                   };
                   
                   // Keep up to 10 versions
@@ -442,6 +500,7 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const finalEnvelopeId = envelopeId || (defaultEnvelopeId || "");
     
     const now = new Date().toISOString();
+    const contentHash = hashNoteContent(title, content);
     const newNote: Note = {
       id: uuidv4(),
       title,
@@ -453,7 +512,8 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       comments: [],
       attachments: [],
       version: 1,  // Start at version 1
-      previousVersions: []  // Initialize empty version history
+      previousVersions: [],  // Initialize empty version history
+      contentHash: contentHash
     };
 
     // Add to local storage
@@ -898,4 +958,3 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       {children}
     </NotesContext.Provider>
   );
-};

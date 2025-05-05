@@ -5,7 +5,7 @@ import { NoteVersion } from "@/types/note";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { RotateCcw, Clock } from "lucide-react";
+import { RotateCcw, Clock, ArrowDownUp } from "lucide-react";
 import { 
   Dialog, 
   DialogContent, 
@@ -68,6 +68,12 @@ const NoteHistory = ({ noteId }: NoteHistoryProps) => {
                       <p className="text-xs text-muted-foreground">
                         Device: {version.deviceId.substring(0, 8)}...
                       </p>
+                    )}
+                    {version.restoredFrom && (
+                      <div className="flex items-center text-xs text-blue-500 mt-1">
+                        <ArrowDownUp className="h-3 w-3 mr-1" />
+                        <span>Restored from v{version.restoredFrom}</span>
+                      </div>
                     )}
                   </div>
                   <DialogClose asChild>

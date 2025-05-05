@@ -40,6 +40,7 @@ export type Note = {
   version: number; // Version counter for conflict resolution
   previousVersions?: NoteVersion[]; // Optional history of previous versions
   deviceId?: string; // Added deviceId as an optional property
+  contentHash?: string; // Hash of the content for version comparison
 };
 
 export type NoteVersion = {
@@ -50,6 +51,8 @@ export type NoteVersion = {
   updatedAt: string;
   version: number;
   deviceId?: string; // Identifier of the device that made the change
+  contentHash?: string; // Hash of the content for version comparison
+  restoredFrom?: number; // If this version was restored from another version
 };
 
 export type Envelope = {
