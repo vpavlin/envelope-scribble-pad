@@ -297,9 +297,7 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 storage.updateNote(receivedNote);
                 
                 // Notify user about the conflict
-                toast({
-                  description: "This note was modified elsewhere. The most recent version is shown, but you can view history to see your changes."
-                });
+                toast("This note was modified elsewhere. The most recent version is shown, but you can view history to see your changes.");
                 
                 return prevNotes.map(n => n.id === receivedNote.id ? receivedNote : n);
               } else {
@@ -335,9 +333,7 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 storage.updateNote(updatedLocalNote);
                 
                 // Notify user about the conflict
-                toast({
-                  description: "Your local changes were kept. A conflicting remote version has been added to history."
-                });
+                toast("Your local changes were kept. A conflicting remote version has been added to history.");
                 
                 return prevNotes.map(n => n.id === updatedLocalNote.id ? updatedLocalNote : n);
               }
