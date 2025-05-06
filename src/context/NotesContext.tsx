@@ -958,3 +958,4 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       {children}
     </NotesContext.Provider>
   );
+}
