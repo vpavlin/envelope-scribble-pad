@@ -319,7 +319,7 @@ const NoteEditor = () => {
               onClick={handleSyncNote}
               disabled={isSyncing}
             >
-              <RefreshCw className={`h-5 w-5 ${isSyncing ? "animate-spin" : ""}`} />
+              <RefreshCcw className={`h-5 w-5 ${isSyncing ? "animate-spin" : ""}`} />
             </Button>
           )}
         </div>

@@ -41,6 +41,7 @@ export type Note = {
   previousVersions?: NoteVersion[]; // Optional history of previous versions
   deviceId?: string; // Added deviceId as an optional property
   contentHash?: string; // Hash of the content for version comparison
+  restoredFrom?: number; // If this version was restored from another version
 };
 
 export type NoteVersion = {

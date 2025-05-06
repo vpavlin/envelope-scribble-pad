@@ -1,4 +1,6 @@
 
+import { NoteVersion } from "@/types/note";
+
 /**
  * Creates a simple hash of the note content for version comparison
  * This is a basic implementation to avoid duplicating content in version history
