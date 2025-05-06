@@ -1,6 +1,6 @@
 
 import React, { useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import Sidebar from "@/components/Sidebar";
 import NoteList from "@/components/NoteList";
 import NoteEditor from "@/components/NoteEditor";
@@ -57,6 +57,7 @@ const Index = () => {
   } = useNotes();
   const params = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Handle URL parameters on component mount and when they change
   useEffect(() => {
@@ -128,6 +129,12 @@ const Index = () => {
             }
           }
         }
+        // Handle home route - clear both envelope and label
+        else if (location.pathname === '/') {
+          console.log("Handling home route - clearing filters");
+          setActiveEnvelopeId(null);
+          setActiveLabelId(null);
+        }
       } catch (error) {
         console.error("Error in routing logic:", error);
       }
@@ -145,7 +152,8 @@ const Index = () => {
     navigate,
     activeEnvelopeId,
     activeLabelId,
-    activeNoteId
+    activeNoteId,
+    location.pathname
   ]);
 
   return (
