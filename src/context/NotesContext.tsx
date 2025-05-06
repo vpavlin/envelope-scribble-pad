@@ -564,13 +564,19 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Filter and sort notes
   let filteredNotes = notes.filter(note => {
+    // Filter by envelope if one is selected
     const matchesEnvelope = activeEnvelopeId ? note.envelopeId === activeEnvelopeId : true;
+    
+    // Filter by label if one is selected
+    const matchesLabel = activeLabelId ? note.labelIds.includes(activeLabelId) : true;
+    
+    // Filter by search term if one is entered
     const matchesSearch = searchTerm
       ? note.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         note.content.toLowerCase().includes(searchTerm.toLowerCase())
       : true;
 
-    return matchesEnvelope && matchesSearch;
+    return matchesEnvelope && matchesLabel && matchesSearch;
   });
 
   // Sort notes based on the current sort option
