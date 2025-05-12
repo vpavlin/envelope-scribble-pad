@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { ChevronLeft, Key, Save, RefreshCw, Eye, EyeOff, QrCode, FileDown, FileUp, Plus, Trash2, Edit, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -954,4 +955,33 @@ const Settings = () => {
                       <FormLabel>System Prompt</FormLabel>
                       <FormControl>
                         <Textarea 
-                          className="min-h-[8
+                          className="min-h-[80px]" 
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Context instructions for the AI that define its role or approach.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setSelectedPromptType(null)}>
+                    Cancel
+                  </Button>
+                  <Button type="button" onClick={() => handleSaveBuiltInPrompt("enhancement")}>
+                    Save Changes
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default Settings;
