@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
-import { Calendar, Trash2, Tag, ArrowLeft, Image, Upload, RefreshCcw, Clock, ArrowDownUp } from "lucide-react";
+import { Calendar, Trash2, Tag, ArrowLeft, Image, Upload, RefreshCcw, Clock, ArrowDownUp, Edit, Eye } from "lucide-react";
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -26,6 +26,7 @@ import { useToast } from "@/hooks/use-toast";
 import ReactMarkdown from "react-markdown";
 import { emit, isWakuInitialized } from "@/utils/wakuSync";
 import { MessageType } from "@/types/note";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Debounce function for delaying sync
 const useDebounce = (callback: Function, delay: number) => {
@@ -77,6 +78,7 @@ const NoteEditor = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
+  const [activeTab, setActiveTab] = useState("editor");
   const isMobile = useIsMobile();
 
   // Auto-save debounced function
@@ -393,21 +395,44 @@ const NoteEditor = () => {
       </div>
       
       <div className="flex-grow mb-4 overflow-auto">
-        <Textarea
-          value={content}
-          onChange={handleContentChange}
-          className="resize-none h-full min-h-[200px]"
-          placeholder="Note content (supports markdown)"
-        />
+        <Tabs 
+          value={activeTab} 
+          onValueChange={setActiveTab}
+          className="h-full flex flex-col"
+        >
+          <TabsList className="grid grid-cols-2 mb-2">
+            <TabsTrigger value="editor" className="flex items-center">
+              <Edit className="h-4 w-4 mr-2" />
+              Editor
+            </TabsTrigger>
+            <TabsTrigger value="preview" className="flex items-center">
+              <Eye className="h-4 w-4 mr-2" />
+              Preview
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="editor" className="flex-grow h-full">
+            <Textarea
+              value={content}
+              onChange={handleContentChange}
+              className="resize-none h-full min-h-[300px]"
+              placeholder="Note content (supports markdown)"
+            />
+          </TabsContent>
+          
+          <TabsContent value="preview" className="flex-grow h-full overflow-auto">
+            <div className="prose max-w-none h-full border rounded p-4 bg-gray-50 overflow-y-auto">
+              {content ? (
+                <ReactMarkdown>{content}</ReactMarkdown>
+              ) : (
+                <div className="text-muted-foreground">
+                  No content to preview
+                </div>
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
-      
-      {/* Preview Markdown */}
-      {content && (
-        <div className="prose max-w-none mb-4 border rounded p-4 bg-gray-50">
-          <h6 className="text-xs text-muted-foreground mb-2">Preview:</h6>
-          <ReactMarkdown>{content}</ReactMarkdown>
-        </div>
-      )}
       
       {/* File Upload Interface */}
       <div className="mb-4">
