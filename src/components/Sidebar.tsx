@@ -29,6 +29,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { isWakuInitialized, emit } from "@/utils/wakuSync";
 import { MessageType } from "@/types/note";
+import Logo from "./Logo";
 
 const Sidebar = () => {
   const {
@@ -202,7 +203,9 @@ const Sidebar = () => {
   const sidebarContent = (
     <div className="w-64 fixed left-0 top-0 h-full bg-slate-50 border-r border-gray-200 p-4 flex flex-col overflow-auto">
       <div className="mb-6">
-        <h1 className="text-xl font-bold mb-4">NoteEnvelope</h1>
+        <div className="flex items-center mb-4">
+          <Logo size="md" />
+        </div>
         <form onSubmit={handleSearch} className="relative">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
@@ -486,7 +489,9 @@ const Sidebar = () => {
           </SheetTrigger>
           <SheetContent side="left" className="p-0">
             <SheetHeader className="p-4 border-b">
-              <SheetTitle>NoteEnvelope</SheetTitle>
+              <SheetTitle>
+                <Logo size="md" />
+              </SheetTitle>
             </SheetHeader>
             {sidebarContent}
           </SheetContent>

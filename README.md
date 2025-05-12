@@ -1,4 +1,7 @@
-# Welcome to your Lovable project
+
+# Welcome to Lope
+
+Lope is a secure note-taking app with privacy in mind.
 
 ## Project info
 
