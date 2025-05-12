@@ -24,16 +24,18 @@ interface ChatResponse {
 }
 
 /**
- * Gets an AI-generated summary or suggestions for a note
+ * Gets an AI-generated response for a note
  * @param content The note content to analyze
  * @param apiKey The Akash API key
- * @param prompt Optional custom prompt
+ * @param prompt The custom prompt to use
+ * @param systemPrompt Optional system prompt
  * @returns The AI response text
  */
-export const getNoteSummary = async (
+export const getAIResponse = async (
   content: string, 
   apiKey: string, 
-  prompt: string = "Summarize this note in 2-3 bullet points (use markdown formatting):"
+  prompt: string,
+  systemPrompt: string = "You help users analyze and summarize notes. Be concise and insightful. Use markdown formatting to structure your responses - use bold, italics, bullet points, etc. as needed to highlight key information."
 ): Promise<string> => {
   try {
     // Set the Authorization header with the API key
@@ -45,7 +47,7 @@ export const getNoteSummary = async (
     const messages: ChatMessage[] = [
       {
         role: "system",
-        content: "You help users analyze and summarize notes. Be concise and insightful. Use markdown formatting to structure your responses - use bold, italics, bullet points, etc. as needed to highlight key information."
+        content: systemPrompt
       },
       {
         role: "user",
@@ -63,9 +65,27 @@ export const getNoteSummary = async (
     
     return response.data.choices[0].message.content;
   } catch (error) {
-    console.error('Error getting AI summary:', error);
-    return "Failed to generate summary. Please check your API key or try again later.";
+    console.error('Error getting AI response:', error);
+    return "Failed to generate response. Please check your API key or try again later.";
   }
+};
+
+/**
+ * Gets an AI-generated summary for a note
+ * @param content The note content to analyze
+ * @param apiKey The Akash API key
+ * @returns The AI summary
+ */
+export const getNoteSummary = async (
+  content: string,
+  apiKey: string
+): Promise<string> => {
+  // Load custom prompt from localStorage or use default
+  const promptsConfig = JSON.parse(localStorage.getItem("lope-ai-prompts") || "{}");
+  const summaryPrompt = promptsConfig.summary?.prompt || "Summarize this note in 2-3 bullet points (use markdown formatting):";
+  const systemPrompt = promptsConfig.summary?.systemPrompt || "You help users analyze and summarize notes. Be concise and insightful. Use markdown formatting to structure your responses - use bold, italics, bullet points, etc. as needed to highlight key information.";
+  
+  return getAIResponse(content, apiKey, summaryPrompt, systemPrompt);
 };
 
 /**
@@ -78,6 +98,90 @@ export const getNoteEnhancement = async (
   content: string,
   apiKey: string
 ): Promise<string> => {
-  return getNoteSummary(content, apiKey, 
-    "Provide 2-3 suggestions to enhance or expand on this note (use markdown formatting):");
+  // Load custom prompt from localStorage or use default
+  const promptsConfig = JSON.parse(localStorage.getItem("lope-ai-prompts") || "{}");
+  const enhancePrompt = promptsConfig.enhancement?.prompt || "Provide 2-3 suggestions to enhance or expand on this note (use markdown formatting):";
+  const systemPrompt = promptsConfig.enhancement?.systemPrompt || "You help users enhance and expand their notes. Be creative and insightful. Use markdown formatting to structure your responses.";
+  
+  return getAIResponse(content, apiKey, enhancePrompt, systemPrompt);
+};
+
+/**
+ * Executes a custom AI prompt on the note content
+ * @param content The note content
+ * @param apiKey The Akash API key
+ * @param promptId The ID of the custom prompt
+ * @returns The AI response
+ */
+export const executeCustomPrompt = async (
+  content: string,
+  apiKey: string,
+  promptId: string
+): Promise<string> => {
+  // Load custom prompts from localStorage
+  const promptsConfig = JSON.parse(localStorage.getItem("lope-ai-prompts") || "{}");
+  const customPrompts = promptsConfig.customPrompts || [];
+  const customPrompt = customPrompts.find((p: any) => p.id === promptId);
+  
+  if (!customPrompt) {
+    return "Custom prompt not found";
+  }
+  
+  return getAIResponse(
+    content, 
+    apiKey, 
+    customPrompt.prompt,
+    customPrompt.systemPrompt || "You are a helpful assistant. Analyze the given text and respond appropriately."
+  );
+};
+
+/**
+ * Get all configured prompts (built-in and custom)
+ */
+export const getConfiguredPrompts = () => {
+  const defaultPrompts = [
+    {
+      id: "summary",
+      label: "Summarize",
+      description: "Generate a concise summary of the note",
+      prompt: "Summarize this note in 2-3 bullet points (use markdown formatting):",
+      systemPrompt: "You help users analyze and summarize notes. Be concise and insightful. Use markdown formatting to structure your responses - use bold, italics, bullet points, etc. as needed to highlight key information.",
+      builtin: true
+    },
+    {
+      id: "enhancement",
+      label: "Enhance",
+      description: "Get suggestions to improve the note",
+      prompt: "Provide 2-3 suggestions to enhance or expand on this note (use markdown formatting):",
+      systemPrompt: "You help users enhance and expand their notes. Be creative and insightful. Use markdown formatting to structure your responses.",
+      builtin: true
+    }
+  ];
+
+  // Load custom prompts from localStorage
+  const promptsConfig = JSON.parse(localStorage.getItem("lope-ai-prompts") || "{}");
+  
+  // Merge built-in prompts with any customizations
+  const builtInPrompts = defaultPrompts.map(prompt => {
+    if (promptsConfig[prompt.id]) {
+      return {
+        ...prompt,
+        ...promptsConfig[prompt.id],
+        builtin: true
+      };
+    }
+    return prompt;
+  });
+  
+  // Add custom prompts
+  const customPrompts = promptsConfig.customPrompts || [];
+  
+  return [...builtInPrompts, ...customPrompts];
+};
+
+/**
+ * Save all prompt configurations to localStorage
+ */
+export const savePromptConfig = (configuration: any) => {
+  localStorage.setItem("lope-ai-prompts", JSON.stringify(configuration));
 };

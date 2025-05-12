@@ -1,23 +1,46 @@
-
 import React, { useState, useEffect, useRef } from "react";
-import { ChevronLeft, Key, Save, RefreshCw, Eye, EyeOff, QrCode, FileDown, FileUp } from "lucide-react";
+import { ChevronLeft, Key, Save, RefreshCw, Eye, EyeOff, QrCode, FileDown, FileUp, Plus, Trash2, Edit, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/sonner";
 import { Link } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage } from "@/components/ui/form";
 import { initializeWaku, getSyncConfig, setSyncConfig, generateSecurePassword } from "@/utils/wakuSync";
 import { exportAllData, importAllData, downloadJson, readFileAsText } from "@/utils/exportImport";
 import { useNotes } from "@/context/NotesContext";
+import { getConfiguredPrompts, savePromptConfig } from "@/utils/aiUtils";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+import { v4 as uuidv4 } from "uuid";
 
 import { QRCodeSVG } from "qrcode.react";
 
+// Schema for custom prompt form
+const customPromptSchema = z.object({
+  id: z.string().optional(),
+  label: z.string().min(1, "Button label is required"),
+  description: z.string().min(1, "Description is required"),
+  prompt: z.string().min(1, "Prompt text is required"),
+  systemPrompt: z.string().optional()
+});
+
+// Schema for built-in prompt form
+const builtInPromptSchema = z.object({
+  prompt: z.string().min(1, "Prompt text is required"),
+  systemPrompt: z.string().min(1, "System prompt is required")
+});
+
 const Settings = () => {
+  // AI Prompts state
   const [apiKey, setApiKey] = useState("");
   const [syncPassword, setSyncPassword] = useState("");
   const [syncEnabled, setSyncEnabled] = useState(false);
@@ -28,6 +51,38 @@ const Settings = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { notes, envelopes, labels } = useNotes();
   const isMobile = useIsMobile();
+  const [promptConfig, setPromptConfig] = useState<any>({});
+  const [customPrompts, setCustomPrompts] = useState<any[]>([]);
+  const [isEditingPrompt, setIsEditingPrompt] = useState<string | null>(null);
+  const [isPromptDialogOpen, setIsPromptDialogOpen] = useState(false);
+  const [selectedPromptType, setSelectedPromptType] = useState<"summary" | "enhancement" | null>(null);
+
+  // Forms
+  const customPromptForm = useForm<z.infer<typeof customPromptSchema>>({
+    resolver: zodResolver(customPromptSchema),
+    defaultValues: {
+      label: "",
+      description: "",
+      prompt: "",
+      systemPrompt: "You are a helpful assistant analyzing the provided text."
+    }
+  });
+
+  const summaryPromptForm = useForm<z.infer<typeof builtInPromptSchema>>({
+    resolver: zodResolver(builtInPromptSchema),
+    defaultValues: {
+      prompt: "",
+      systemPrompt: ""
+    }
+  });
+  
+  const enhancementPromptForm = useForm<z.infer<typeof builtInPromptSchema>>({
+    resolver: zodResolver(builtInPromptSchema),
+    defaultValues: {
+      prompt: "",
+      systemPrompt: ""
+    }
+  });
 
   useEffect(() => {
     // Load the API key from localStorage on component mount
@@ -38,7 +93,38 @@ const Settings = () => {
     const syncConfig = getSyncConfig();
     setSyncPassword(syncConfig.password);
     setSyncEnabled(syncConfig.enabled);
+    
+    // Load AI prompts config
+    loadPromptConfig();
   }, []);
+  
+  const loadPromptConfig = () => {
+    const allPrompts = getConfiguredPrompts();
+    const savedConfig = JSON.parse(localStorage.getItem("lope-ai-prompts") || "{}");
+    
+    // Set custom prompts
+    setCustomPrompts(savedConfig.customPrompts || []);
+    
+    // Set overall config
+    setPromptConfig(savedConfig);
+    
+    // Set form values for built-in prompts
+    const summaryPrompt = allPrompts.find(p => p.id === "summary");
+    if (summaryPrompt) {
+      summaryPromptForm.reset({
+        prompt: summaryPrompt.prompt,
+        systemPrompt: summaryPrompt.systemPrompt || ""
+      });
+    }
+    
+    const enhancePrompt = allPrompts.find(p => p.id === "enhancement");
+    if (enhancePrompt) {
+      enhancementPromptForm.reset({
+        prompt: enhancePrompt.prompt,
+        systemPrompt: enhancePrompt.systemPrompt || ""
+      });
+    }
+  };
 
   const saveApiKey = () => {
     localStorage.setItem("akash-api-key", apiKey);
@@ -111,6 +197,110 @@ const Settings = () => {
     setShowPassword(!showPassword);
   };
   
+  // AI Prompt handling functions
+  const handleSaveBuiltInPrompt = (type: "summary" | "enhancement") => {
+    const form = type === "summary" ? summaryPromptForm : enhancementPromptForm;
+    const formData = form.getValues();
+    
+    const newConfig = { ...promptConfig };
+    newConfig[type] = {
+      prompt: formData.prompt,
+      systemPrompt: formData.systemPrompt
+    };
+    
+    savePromptConfig(newConfig);
+    setPromptConfig(newConfig);
+    
+    toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} prompt updated`);
+    setSelectedPromptType(null);
+  };
+  
+  const handleAddCustomPrompt = (data: z.infer<typeof customPromptSchema>) => {
+    const newPrompt = {
+      ...data,
+      id: data.id || uuidv4()
+    };
+    
+    let updatedPrompts;
+    
+    if (isEditingPrompt) {
+      // Update existing prompt
+      updatedPrompts = customPrompts.map(prompt => 
+        prompt.id === isEditingPrompt ? newPrompt : prompt
+      );
+    } else {
+      // Add new prompt
+      updatedPrompts = [...customPrompts, newPrompt];
+    }
+    
+    const newConfig = { 
+      ...promptConfig,
+      customPrompts: updatedPrompts
+    };
+    
+    savePromptConfig(newConfig);
+    setCustomPrompts(updatedPrompts);
+    setPromptConfig(newConfig);
+    setIsPromptDialogOpen(false);
+    setIsEditingPrompt(null);
+    
+    toast.success(isEditingPrompt ? "Custom prompt updated" : "Custom prompt added");
+    
+    // Reset form
+    customPromptForm.reset({
+      label: "",
+      description: "",
+      prompt: "",
+      systemPrompt: "You are a helpful assistant analyzing the provided text."
+    });
+  };
+  
+  const handleEditCustomPrompt = (promptId: string) => {
+    const prompt = customPrompts.find(p => p.id === promptId);
+    if (prompt) {
+      customPromptForm.reset({
+        id: prompt.id,
+        label: prompt.label,
+        description: prompt.description,
+        prompt: prompt.prompt,
+        systemPrompt: prompt.systemPrompt || "You are a helpful assistant analyzing the provided text."
+      });
+      
+      setIsEditingPrompt(promptId);
+      setIsPromptDialogOpen(true);
+    }
+  };
+  
+  const handleDeleteCustomPrompt = (promptId: string) => {
+    const updatedPrompts = customPrompts.filter(p => p.id !== promptId);
+    
+    const newConfig = { 
+      ...promptConfig,
+      customPrompts: updatedPrompts
+    };
+    
+    savePromptConfig(newConfig);
+    setCustomPrompts(updatedPrompts);
+    setPromptConfig(newConfig);
+    
+    toast.success("Custom prompt removed");
+  };
+  
+  const openBuiltInPromptEditor = (type: "summary" | "enhancement") => {
+    setSelectedPromptType(type);
+  };
+  
+  const openNewCustomPromptDialog = () => {
+    setIsEditingPrompt(null);
+    customPromptForm.reset({
+      label: "",
+      description: "",
+      prompt: "",
+      systemPrompt: "You are a helpful assistant analyzing the provided text."
+    });
+    setIsPromptDialogOpen(true);
+  };
+
   const handleExport = async () => {
     setIsExporting(true);
     try {
@@ -214,6 +404,125 @@ const Settings = () => {
       </div>
 
       <div className="space-y-6">
+        {/* AI Prompts Configuration */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Sparkles className="mr-2 h-5 w-5" />
+              AI Prompts Configuration
+            </CardTitle>
+            <CardDescription>
+              Customize built-in AI prompts and create your own custom prompts
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Tabs defaultValue="builtin" className="space-y-4">
+              <TabsList>
+                <TabsTrigger value="builtin">Built-in Prompts</TabsTrigger>
+                <TabsTrigger value="custom">Custom Prompts</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="builtin" className="space-y-4">
+                <div className="space-y-2">
+                  <h3 className="text-lg font-medium">Built-in Prompts</h3>
+                  <p className="text-sm text-muted-foreground">Customize the default prompts used for summarizing and enhancing notes.</p>
+                  
+                  <div className="space-y-4 mt-4">
+                    {/* Summary Prompt */}
+                    <Card>
+                      <CardHeader className="py-4">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-base">Summarize</CardTitle>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => openBuiltInPromptEditor("summary")}
+                          >
+                            <Edit className="h-4 w-4 mr-1" /> Edit
+                          </Button>
+                        </div>
+                        <CardDescription>
+                          Generate a concise summary of the note
+                        </CardDescription>
+                      </CardHeader>
+                    </Card>
+                    
+                    {/* Enhancement Prompt */}
+                    <Card>
+                      <CardHeader className="py-4">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-base">Enhance</CardTitle>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => openBuiltInPromptEditor("enhancement")}
+                          >
+                            <Edit className="h-4 w-4 mr-1" /> Edit
+                          </Button>
+                        </div>
+                        <CardDescription>
+                          Get suggestions to improve the note
+                        </CardDescription>
+                      </CardHeader>
+                    </Card>
+                  </div>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="custom" className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-medium">Custom Prompts</h3>
+                    <Button onClick={openNewCustomPromptDialog}>
+                      <Plus className="h-4 w-4 mr-1" /> Add Prompt
+                    </Button>
+                  </div>
+                  <p className="text-sm text-muted-foreground">Create your own AI prompts to appear in the note editor.</p>
+                  
+                  {customPrompts.length === 0 ? (
+                    <Card className="p-4 border-dashed bg-muted/50 my-4">
+                      <p className="text-center text-muted-foreground">
+                        No custom prompts created yet. Create one to get started.
+                      </p>
+                    </Card>
+                  ) : (
+                    <div className="space-y-3 mt-4">
+                      {customPrompts.map(prompt => (
+                        <Card key={prompt.id}>
+                          <CardHeader className="py-3">
+                            <div className="flex items-center justify-between">
+                              <CardTitle className="text-base">{prompt.label}</CardTitle>
+                              <div className="space-x-1">
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  onClick={() => handleEditCustomPrompt(prompt.id)}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  onClick={() => handleDeleteCustomPrompt(prompt.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                            <CardDescription>
+                              {prompt.description}
+                            </CardDescription>
+                          </CardHeader>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
@@ -442,8 +751,207 @@ const Settings = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
-  );
-};
-
-export default Settings;
+      
+      {/* Custom Prompt Dialog */}
+      <Dialog open={isPromptDialogOpen} onOpenChange={setIsPromptDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{isEditingPrompt ? "Edit Custom Prompt" : "Add Custom Prompt"}</DialogTitle>
+            <DialogDescription>
+              Create a custom AI prompt that will appear in the note editor.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <Form {...customPromptForm}>
+            <form onSubmit={customPromptForm.handleSubmit(handleAddCustomPrompt)} className="space-y-4">
+              <FormField
+                control={customPromptForm.control}
+                name="label"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Button Label</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., Action Items" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      The text that will appear on the button in the UI.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={customPromptForm.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., Extract action items from the note" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      A brief description of what this prompt does.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={customPromptForm.control}
+                name="prompt"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Prompt Text</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="e.g., Extract action items and tasks from this note and format them as a checklist:" 
+                        className="min-h-[100px]"
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      The specific instructions sent to the AI. The note content will be appended to this prompt.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={customPromptForm.control}
+                name="systemPrompt"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>System Prompt (Optional)</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="e.g., You are an assistant that helps organize tasks and action items." 
+                        className="min-h-[80px]"
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Context instructions for the AI that define its role or approach.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setIsPromptDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">
+                  {isEditingPrompt ? "Update Prompt" : "Add Prompt"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Built-in Prompt Edit Dialog */}
+      <Dialog 
+        open={selectedPromptType !== null} 
+        onOpenChange={(open) => !open && setSelectedPromptType(null)}
+      >
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              Edit {selectedPromptType === "summary" ? "Summary" : "Enhancement"} Prompt
+            </DialogTitle>
+            <DialogDescription>
+              Customize the built-in {selectedPromptType === "summary" ? "summary" : "enhancement"} prompt.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedPromptType === "summary" && (
+            <Form {...summaryPromptForm}>
+              <form className="space-y-4">
+                <FormField
+                  control={summaryPromptForm.control}
+                  name="prompt"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Prompt Text</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          className="min-h-[100px]" 
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        The specific instructions sent to the AI.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={summaryPromptForm.control}
+                  name="systemPrompt"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>System Prompt</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          className="min-h-[80px]" 
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Context instructions for the AI that define its role or approach.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setSelectedPromptType(null)}>
+                    Cancel
+                  </Button>
+                  <Button type="button" onClick={() => handleSaveBuiltInPrompt("summary")}>
+                    Save Changes
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          )}
+          
+          {selectedPromptType === "enhancement" && (
+            <Form {...enhancementPromptForm}>
+              <form className="space-y-4">
+                <FormField
+                  control={enhancementPromptForm.control}
+                  name="prompt"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Prompt Text</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          className="min-h-[100px]" 
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        The specific instructions sent to the AI.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={enhancementPromptForm.control}
+                  name="systemPrompt"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>System Prompt</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          className="min-h-[8
