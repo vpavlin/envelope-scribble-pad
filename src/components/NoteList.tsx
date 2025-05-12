@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useNotes } from "@/context/NotesContext";
 import NoteCard from "./NoteCard";
@@ -76,7 +77,8 @@ const NoteList = () => {
 
       const prompt = `Summarize these notes into 3-5 key points or themes:\n\n${combinedContent}`;
       
-      const summary = await getNoteSummary("", apiKey, prompt);
+      // Fix: Remove the empty string argument and just pass apiKey and prompt
+      const summary = await getNoteSummary(apiKey, prompt);
       setEnvelopeSummary(summary);
     } catch (error) {
       console.error("Error generating envelope summary:", error);

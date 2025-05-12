@@ -85,6 +85,7 @@ const AISummary: React.FC<AISummaryProps> = ({ noteId, noteContent, summaries = 
       }
       
       // Handle built-in prompts with specific functions
+      // Fix: Type check to ensure promptId is one of the allowed values for type field
       if (promptId === 'summary') {
         content = await getNoteSummary(noteContent, storedApiKey);
       } else if (promptId === 'enhancement') {
@@ -94,10 +95,11 @@ const AISummary: React.FC<AISummaryProps> = ({ noteId, noteContent, summaries = 
         content = await executeCustomPrompt(noteContent, storedApiKey, promptId);
       }
       
+      // Fix: Ensure type is either 'summary', 'enhancement', or cast it for AISummary type
       const newSummary: AISummaryType = {
         content,
         generatedAt: new Date().toISOString(),
-        type: promptId
+        type: (promptId === 'summary' || promptId === 'enhancement') ? promptId : 'summary'
       };
 
       // Update the note with the new summary
