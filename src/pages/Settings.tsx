@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect, useRef } from "react";
-import { ChevronLeft, Key, Save, RefreshCw, Eye, EyeOff, QrCode, FileDown, FileUp, Plus, Trash2, Edit, Sparkles } from "lucide-react";
+import { ChevronLeft, Key, Save, RefreshCw, Eye, EyeOff, QrCode, FileDown, FileUp, Plus, Trash2, Edit, Sparkles, Network, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,7 +21,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { v4 as uuidv4 } from "uuid";
-
 import { QRCodeSVG } from "qrcode.react";
 
 // Schema for custom prompt form
@@ -674,6 +672,56 @@ const Settings = () => {
                     </Dialog>
                   )}
                 </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Network className="mr-2 h-5 w-5" />
+              About Waku P2P Network
+            </CardTitle>
+            <CardDescription>
+              Learn about the decentralized technology powering cross-device synchronization
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <p className="text-sm">
+                NoteEnvelope uses <strong>Waku</strong>, a privacy-preserving, decentralized communication protocol 
+                for secure synchronization between your devices. Unlike traditional cloud sync services, Waku:
+              </p>
+              
+              <ul className="list-disc pl-5 text-sm space-y-2">
+                <li>Encrypts your data end-to-end for maximum privacy</li>
+                <li>Operates in a decentralized manner with no central server storing your notes</li>
+                <li>Uses peer-to-peer technology to sync directly between your devices</li>
+                <li>Requires no account creation or personal information</li>
+              </ul>
+              
+              <div className="bg-blue-50 p-4 rounded-md border border-blue-100 mt-4">
+                <h4 className="text-sm font-medium mb-2">How Your Data Stays Private</h4>
+                <p className="text-sm text-muted-foreground">
+                  Your notes are encrypted with your sync password before leaving your device. 
+                  Only devices with the same password can decrypt and access your notes.
+                  The password itself is never transmitted over the network.
+                </p>
+              </div>
+              
+              <div className="flex justify-end">
+                <Button variant="outline" size="sm" asChild>
+                  <a 
+                    href="https://waku.org" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center"
+                  >
+                    Learn more about Waku
+                    <ExternalLink className="h-3.5 w-3.5 ml-1" />
+                  </a>
+                </Button>
               </div>
             </div>
           </CardContent>

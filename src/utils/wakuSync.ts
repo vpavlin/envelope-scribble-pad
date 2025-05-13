@@ -1,3 +1,4 @@
+
 import getDispatcher, { Dispatcher, KeyType } from "waku-dispatcher";
 import { MessageType } from "@/types/note";
 import {
@@ -107,6 +108,9 @@ export const initializeWaku = async (password: string): Promise<Dispatcher> => {
           // Register the encryption key
           dispatcher.registerKey(encryptionKey, KeyType.Symmetric, true);
           syncEnabled = true;
+          
+          // Expose the dispatcher globally for health monitoring
+          (window as any).wakuDispatcher = dispatcher;
 
           resolve(dispatcher);
         }
