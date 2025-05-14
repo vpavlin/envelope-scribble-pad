@@ -1,3 +1,4 @@
+
 export type Label = {
   id: string;
   name: string;
@@ -13,7 +14,7 @@ export type Comment = {
 export type AISummary = {
   content: string;
   generatedAt: string;
-  type: 'summary' | 'enhancement' | string;
+  type: 'summary' | 'enhancement';
 };
 
 export type Attachment = {
