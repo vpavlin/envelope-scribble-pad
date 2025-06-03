@@ -2,19 +2,33 @@
 // Popup script for the Lope companion extension
 class LopePopup {
   constructor() {
-    this.lopeAppUrl = 'https://5231fd71-747f-4ed5-afba-6b29c5975acc.lovableproject.com';
+    this.defaultUrl = 'https://5231fd71-747f-4ed5-afba-6b29c5975acc.lovableproject.com';
+    this.lopeAppUrl = this.defaultUrl;
+    this.currentTab = null;
     this.init();
   }
 
   async init() {
+    await this.loadSettings();
     await this.loadCurrentPage();
     this.setupEventListeners();
     this.loadEnvelopes();
   }
 
+  async loadSettings() {
+    try {
+      const result = await chrome.storage.sync.get(['lopeInstanceUrl']);
+      this.lopeAppUrl = result.lopeInstanceUrl || this.defaultUrl;
+    } catch (error) {
+      console.error('Error loading settings:', error);
+      this.lopeAppUrl = this.defaultUrl;
+    }
+  }
+
   async loadCurrentPage() {
     try {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      this.currentTab = tab;
       document.getElementById('currentUrl').textContent = tab.url;
       document.getElementById('title').value = tab.title || '';
     } catch (error) {
@@ -39,10 +53,8 @@ class LopePopup {
 
   async captureSelection() {
     try {
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      
       const results = await chrome.scripting.executeScript({
-        target: { tabId: tab.id },
+        target: { tabId: this.currentTab.id },
         function: () => {
           const selection = window.getSelection().toString();
           return selection.trim();
@@ -67,10 +79,8 @@ class LopePopup {
 
   async capturePageInfo() {
     try {
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      
       const results = await chrome.scripting.executeScript({
-        target: { tabId: tab.id },
+        target: { tabId: this.currentTab.id },
         function: () => {
           const title = document.title;
           const url = window.location.href;
@@ -112,11 +122,11 @@ class LopePopup {
     }
 
     try {
-      // Create the URL with share target parameters
+      // Create the URL with share target parameters using the current tab's URL
       const params = new URLSearchParams({
         title: title,
         text: content,
-        url: window.location.href
+        url: this.currentTab?.url || ''
       });
 
       const lopeUrl = `${this.lopeAppUrl}?${params.toString()}`;

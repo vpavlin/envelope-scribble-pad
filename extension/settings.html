@@ -1,0 +1,177 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Lope Companion Settings</title>
+  <style>
+    body {
+      width: 500px;
+      min-height: 300px;
+      margin: 0;
+      padding: 20px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+    
+    .header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid #e5e7eb;
+    }
+    
+    .logo {
+      display: flex;
+      align-items: center;
+      font-weight: bold;
+      font-size: 18px;
+    }
+    
+    .logo-icon {
+      width: 24px;
+      height: 24px;
+      margin-right: 10px;
+      background: #3b82f6;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 14px;
+    }
+    
+    .form-group {
+      margin-bottom: 16px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 500;
+      color: #374151;
+    }
+    
+    .help-text {
+      font-size: 12px;
+      color: #6b7280;
+      margin-bottom: 8px;
+    }
+    
+    input[type="url"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    
+    input[type="url"]:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    
+    .button {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      margin-right: 8px;
+    }
+    
+    .button:hover {
+      background: #2563eb;
+    }
+    
+    .button.secondary {
+      background: #6b7280;
+    }
+    
+    .button.secondary:hover {
+      background: #4b5563;
+    }
+    
+    .status {
+      padding: 10px 12px;
+      border-radius: 6px;
+      margin-top: 12px;
+      font-size: 13px;
+    }
+    
+    .status.success {
+      background: #dcfce7;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+    }
+    
+    .status.error {
+      background: #fef2f2;
+      color: #dc2626;
+      border: 1px solid #fecaca;
+    }
+    
+    .examples {
+      background: #f9fafb;
+      padding: 12px;
+      border-radius: 6px;
+      margin-top: 8px;
+      font-size: 12px;
+    }
+    
+    .examples strong {
+      color: #374151;
+    }
+    
+    .examples ul {
+      margin: 8px 0 0 0;
+      padding-left: 16px;
+    }
+    
+    .examples li {
+      margin-bottom: 4px;
+      color: #6b7280;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon">✉</div>
+      Lope Companion Settings
+    </div>
+  </div>
+  
+  <form id="settingsForm">
+    <div class="form-group">
+      <label for="instanceUrl">Lope Instance URL</label>
+      <div class="help-text">Enter the URL of your Lope instance (where your Lope app is hosted)</div>
+      <input type="url" id="instanceUrl" placeholder="https://your-lope-instance.com" required>
+      
+      <div class="examples">
+        <strong>Examples:</strong>
+        <ul>
+          <li>https://5231fd71-747f-4ed5-afba-6b29c5975acc.lovableproject.com</li>
+          <li>https://localhost:5173</li>
+          <li>https://my-lope.vercel.app</li>
+          <li>https://lope.example.com</li>
+        </ul>
+      </div>
+    </div>
+    
+    <button type="submit" class="button">Save Settings</button>
+    <button type="button" class="button secondary" id="resetButton">Reset to Default</button>
+  </form>
+  
+  <div id="status"></div>
+
+  <script src="settings.js"></script>
+</body>
+</html>

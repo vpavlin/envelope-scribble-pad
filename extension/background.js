@@ -1,7 +1,13 @@
 
 // Background script for the Lope companion extension
 
+let lopeAppUrl = 'https://5231fd71-747f-4ed5-afba-6b29c5975acc.lovableproject.com';
+
+// Load settings when extension starts
+chrome.runtime.onStartup.addListener(loadSettings);
 chrome.runtime.onInstalled.addListener(() => {
+  loadSettings();
+  
   // Create context menu items
   chrome.contextMenus.create({
     id: 'saveToLope',
@@ -16,8 +22,25 @@ chrome.runtime.onInstalled.addListener(() => {
   });
 });
 
+async function loadSettings() {
+  try {
+    const result = await chrome.storage.sync.get(['lopeInstanceUrl']);
+    lopeAppUrl = result.lopeInstanceUrl || 'https://5231fd71-747f-4ed5-afba-6b29c5975acc.lovableproject.com';
+  } catch (error) {
+    console.error('Error loading settings:', error);
+  }
+}
+
+// Listen for settings changes
+chrome.storage.onChanged.addListener((changes, namespace) => {
+  if (namespace === 'sync' && changes.lopeInstanceUrl) {
+    lopeAppUrl = changes.lopeInstanceUrl.newValue;
+  }
+});
+
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
-  const lopeAppUrl = 'https://5231fd71-747f-4ed5-afba-6b29c5975acc.lovableproject.com';
+  // Reload settings to ensure we have the latest URL
+  await loadSettings();
   
   try {
     let title = tab.title || 'Saved from web';
@@ -33,7 +56,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
       content = `Source: ${tab.url}`;
     }
 
-    // Create share target URL
+    // Create share target URL using the actual tab URL
     const params = new URLSearchParams({
       title: title,
       text: content,
@@ -53,21 +76,22 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 // Handle messages from content script or popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'saveToLope') {
-    const lopeAppUrl = 'https://5231fd71-747f-4ed5-afba-6b29c5975acc.lovableproject.com';
-    
-    const params = new URLSearchParams({
-      title: request.title || 'Saved from web',
-      text: request.content || '',
-      url: request.url || ''
-    });
+    // Reload settings to ensure we have the latest URL
+    loadSettings().then(() => {
+      const params = new URLSearchParams({
+        title: request.title || 'Saved from web',
+        text: request.content || '',
+        url: request.url || ''
+      });
 
-    const shareUrl = `${lopeAppUrl}?${params.toString()}`;
-    
-    chrome.tabs.create({ url: shareUrl }).then(() => {
-      sendResponse({ success: true });
-    }).catch((error) => {
-      console.error('Error opening Lope:', error);
-      sendResponse({ success: false, error: error.message });
+      const shareUrl = `${lopeAppUrl}?${params.toString()}`;
+      
+      chrome.tabs.create({ url: shareUrl }).then(() => {
+        sendResponse({ success: true });
+      }).catch((error) => {
+        console.error('Error opening Lope:', error);
+        sendResponse({ success: false, error: error.message });
+      });
     });
     
     return true; // Keep message channel open for async response

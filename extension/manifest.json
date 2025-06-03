@@ -10,7 +10,8 @@
     "contextMenus"
   ],
   "host_permissions": [
-    "https://5231fd71-747f-4ed5-afba-6b29c5975acc.lovableproject.com/*"
+    "https://*/*",
+    "http://localhost:*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -27,6 +28,7 @@
     "default_title": "Save to Lope",
     "default_icon": "icons/icon.svg"
   },
+  "options_page": "settings.html",
   "icons": {
     "16": "icons/icon.svg",
     "32": "icons/icon.svg",

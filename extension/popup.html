@@ -17,6 +17,7 @@
     .header {
       display: flex;
       align-items: center;
+      justify-content: space-between;
       margin-bottom: 16px;
       padding-bottom: 12px;
       border-bottom: 1px solid #e5e7eb;
@@ -40,6 +41,20 @@
       justify-content: center;
       color: white;
       font-size: 12px;
+    }
+    
+    .settings-link {
+      color: #6b7280;
+      text-decoration: none;
+      font-size: 12px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: background-color 0.2s;
+    }
+    
+    .settings-link:hover {
+      background: #f3f4f6;
+      color: #374151;
     }
     
     .form-group {
@@ -131,6 +146,7 @@
       <div class="logo-icon">✉</div>
       Lope Companion
     </div>
+    <a href="#" class="settings-link" id="settingsLink">⚙️ Settings</a>
   </div>
   
   <div id="status"></div>
@@ -163,6 +179,13 @@
     <button type="button" class="button secondary" id="capturePage">Capture Page Info</button>
   </form>
 
+  <script>
+    // Add settings link functionality
+    document.getElementById('settingsLink').addEventListener('click', (e) => {
+      e.preventDefault();
+      chrome.runtime.openOptionsPage();
+    });
+  </script>
   <script src="popup.js"></script>
 </body>
 </html>
