@@ -1,57 +1,61 @@
+import { generatePrivateKey } from "@waku/message-encryption";
+import { Wallet } from "ethers";
+import { utils, etc } from "@noble/secp256k1"
 
-import { secp256k1 } from '@noble/secp256k1';
 
-export interface Identity {
-  privateKey: string;
-  publicKey: string;
-}
+export class Identity {
 
-export const generateIdentity = (): Identity => {
-  const privateKeyBytes = secp256k1.utils.randomPrivateKey();
-  const privateKey = Buffer.from(privateKeyBytes).toString('hex');
-  const publicKeyPoint = secp256k1.getPublicKey(privateKeyBytes);
-  const publicKey = Buffer.from(publicKeyPoint).toString('hex');
+    name:string = "identity"
+    password:string | undefined = undefined
 
-  return {
-    privateKey,
-    publicKey
-  };
-};
+    wallet:Wallet | undefined = undefined
+    constructor(password:string, name?:string) {
+        if (name) {
+            this.name = name
+        }
 
-export const getStoredIdentity = (): Identity | null => {
-  const stored = localStorage.getItem('waku-identity');
-  if (stored) {
-    try {
-      return JSON.parse(stored);
-    } catch (error) {
-      console.error('Failed to parse stored identity:', error);
-      return null;
+        this.password = password
     }
-  }
-  return null;
-};
 
-export const storeIdentity = (identity: Identity): void => {
-  localStorage.setItem('waku-identity', JSON.stringify(identity));
-};
+    public address():string {
+        if (!this.wallet) throw new Error("Identity not initialized")
+        return this.wallet!.address
+    }
 
-export const getOrCreateIdentity = (): Identity => {
-  let identity = getStoredIdentity();
-  if (!identity) {
-    identity = generateIdentity();
-    storeIdentity(identity);
-  }
-  return identity;
-};
+    public sign(message: string | Uint8Array):string {
+        if (!this.wallet) throw new Error("Identity not initialized")
 
-export const signMessage = (message: string, privateKey: string): string => {
-  try {
-    const messageHash = new TextEncoder().encode(message);
-    const privateKeyBytes = Buffer.from(privateKey, 'hex');
-    const signature = secp256k1.sign(messageHash, privateKeyBytes);
-    return Buffer.from(signature.toCompactRawBytes()).toString('hex');
-  } catch (error) {
-    console.error('Failed to sign message:', error);
-    throw error;
-  }
-};
+        return this.wallet.signMessageSync(message)
+    }
+
+    public getWallet():Wallet {
+        if (!this.wallet) throw new Error("Identity not initialized")
+
+        return this.wallet
+    }
+
+    public async init() {
+ 
+        let item = localStorage.getItem(this.getStorageKey())
+        if (!item) {
+            const newKey = generatePrivateKey()
+            
+            item = await this.storePrivateKey(etc.bytesToHex(newKey))
+        }
+
+        this.wallet = await Wallet.fromEncryptedJson(item, this.password!) as Wallet
+    }
+
+    private async storePrivateKey(key:string) {
+        const w = new Wallet(key)
+        const item = await w.encryptSync(this.password!)
+        localStorage.setItem(this.getStorageKey(), item)
+
+        return item
+    }
+
+    private getStorageKey():string {
+        return `${this.name}-key`
+    }
+
+}
