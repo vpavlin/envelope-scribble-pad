@@ -88,7 +88,6 @@ const Sidebar = () => {
     setDefaultEnvelopeId(envelopeId);
   };
 
-  // Just adding our WakuHealthIndicator to the sidebar
   return (
     <div
       className={`${
@@ -100,8 +99,7 @@ const Sidebar = () => {
       {isMobile ? (
         <div className="h-full flex items-center justify-between px-4">
           <Link to="/" className="flex items-center">
-            <Logo className="h-8 w-8" />
-            <span className="font-semibold ml-2">NoteEnvelope</span>
+            <Logo />
           </Link>
           <div className="flex items-center gap-2">
             <WakuHealthIndicator />
@@ -116,8 +114,7 @@ const Sidebar = () => {
         <div className="h-full flex flex-col">
           <div className="px-4 py-4 flex items-center justify-between border-b">
             <Link to="/" className="flex items-center">
-              <Logo className="h-8 w-8" />
-              <span className="font-semibold ml-2">NoteEnvelope</span>
+              <Logo />
             </Link>
             <Link to="/settings">
               <Button variant="ghost" size="icon">
