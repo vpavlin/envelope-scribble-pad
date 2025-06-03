@@ -7,6 +7,8 @@ import NoteEditor from "@/components/NoteEditor";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useNotes } from "@/context/NotesContext";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
+import { extractSharedContent, formatSharedContentAsNote, clearShareParams } from "@/utils/shareTarget";
+import { toast } from "@/components/ui/sonner";
 
 // Component to handle the note view with context access
 const NoteView = () => {
@@ -53,11 +55,45 @@ const Index = () => {
     labels,
     activeNoteId,
     activeEnvelopeId,
-    activeLabelId
+    activeLabelId,
+    addNote,
+    defaultEnvelopeId
   } = useNotes();
   const params = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Handle shared content from PWA share target
+  useEffect(() => {
+    const handleSharedContent = async () => {
+      const sharedContent = extractSharedContent();
+      
+      if (sharedContent) {
+        try {
+          const { title, content } = formatSharedContentAsNote(sharedContent);
+          
+          // Use default envelope or first available envelope
+          const envelopeId = defaultEnvelopeId || (envelopes.length > 0 ? envelopes[0].id : "");
+          
+          // Create the note with shared content
+          await addNote(title, content, envelopeId, []);
+          
+          // Clear the share parameters from URL
+          clearShareParams();
+          
+          toast.success("Shared content saved as new note!");
+        } catch (error) {
+          console.error("Error handling shared content:", error);
+          toast.error("Failed to save shared content");
+        }
+      }
+    };
+    
+    // Only handle shared content if we have envelopes loaded
+    if (envelopes.length > 0) {
+      handleSharedContent();
+    }
+  }, [addNote, defaultEnvelopeId, envelopes]);
 
   // Handle URL parameters on component mount and when they change
   useEffect(() => {
