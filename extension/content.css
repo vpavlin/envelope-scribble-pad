@@ -1,0 +1,28 @@
+
+/* Styles for the Lope floating button and other content script elements */
+
+.lope-floating-button {
+  /* Styles are applied inline in JavaScript for better control */
+}
+
+.lope-floating-content {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lope-icon {
+  font-size: 16px;
+}
+
+.lope-toast {
+  /* Styles are applied inline in JavaScript for better control */
+}
+
+/* Ensure our elements don't interfere with page styles */
+.lope-floating-button *,
+.lope-toast * {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
