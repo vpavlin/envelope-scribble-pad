@@ -76,7 +76,7 @@ const NoteList = () => {
 
       const prompt = `Summarize these notes into 3-5 key points or themes:\n\n${combinedContent}`;
       
-      const summary = await getNoteSummary("", apiKey, prompt);
+      const summary = await getNoteSummary(prompt, apiKey);
       setEnvelopeSummary(summary);
     } catch (error) {
       console.error("Error generating envelope summary:", error);

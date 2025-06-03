@@ -14,7 +14,7 @@ export type Comment = {
 export type AISummary = {
   content: string;
   generatedAt: string;
-  type: 'summary' | 'enhancement';
+  type: string
 };
 
 export type Attachment = {
