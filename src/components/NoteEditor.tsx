@@ -489,6 +489,7 @@ const NoteEditor = () => {
       <AISummary 
         noteId={activeNote.id}
         noteContent={content}
+        noteTitle={title}
         summaries={activeNote.aiSummaries}
       />
       

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +33,7 @@ import { toast } from "@/components/ui/sonner";
 interface AISummaryProps {
   noteId: string;
   noteContent: string;
+  noteTitle?: string;
   summaries?: AISummaryType[];
 }
 
@@ -46,7 +46,7 @@ interface PromptConfig {
   builtin?: boolean;
 }
 
-const AISummary: React.FC<AISummaryProps> = ({ noteId, noteContent, summaries = [] }) => {
+const AISummary: React.FC<AISummaryProps> = ({ noteId, noteContent, noteTitle, summaries = [] }) => {
   const { updateNote } = useNotes();
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -85,12 +85,12 @@ const AISummary: React.FC<AISummaryProps> = ({ noteId, noteContent, summaries = 
       
       // Handle built-in prompts with specific functions
       if (promptId === 'summary') {
-        content = await getNoteSummary(noteContent, storedApiKey);
+        content = await getNoteSummary(noteContent, storedApiKey, noteTitle);
       } else if (promptId === 'enhancement') {
-        content = await getNoteEnhancement(noteContent, storedApiKey);
+        content = await getNoteEnhancement(noteContent, storedApiKey, noteTitle);
       } else {
         // Handle custom prompts
-        content = await executeCustomPrompt(noteContent, storedApiKey, promptId);
+        content = await executeCustomPrompt(noteContent, storedApiKey, promptId, noteTitle);
       }
       
       const newSummary: AISummaryType = {
