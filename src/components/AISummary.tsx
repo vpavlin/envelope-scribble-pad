@@ -30,7 +30,6 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { toast } from "@/components/ui/sonner";
-import ReactMarkdown from "react-markdown";
 
 interface AISummaryProps {
   noteId: string;
@@ -100,10 +99,13 @@ const AISummary: React.FC<AISummaryProps> = ({ noteId, noteContent, summaries = 
         type: promptId
       };
 
-      // Update the note with the new summary
+      // Replace existing summary of the same type or add new one
       const currentSummaries = summaries || [];
+      const updatedSummaries = currentSummaries.filter(summary => summary.type !== promptId);
+      updatedSummaries.push(newSummary);
+
       updateNote(noteId, {
-        aiSummaries: [...currentSummaries, newSummary]
+        aiSummaries: updatedSummaries
       });
 
       toast.success(`AI ${promptConfig.label.toLowerCase()} generated successfully`);
@@ -189,10 +191,10 @@ const AISummary: React.FC<AISummaryProps> = ({ noteId, noteContent, summaries = 
         </div>
       </div>
 
-      {/* Display AI summaries if available */}
+      {/* Display AI summaries if available - limit height to prevent UI overflow */}
       {hasSummaries && (
-        <div className="space-y-2">
-          {summaries.slice(-2).map((summary, index) => {
+        <div className="space-y-2 max-h-60 overflow-y-auto">
+          {summaries.map((summary, index) => {
             // Find the prompt configuration for this summary type
             const promptConfig = configuredPrompts.find(p => p.id === summary.type);
             const summaryLabel = promptConfig?.label || 
@@ -200,12 +202,12 @@ const AISummary: React.FC<AISummaryProps> = ({ noteId, noteContent, summaries = 
                summary.type === 'enhancement' ? 'Suggestions' : summary.type);
             
             return (
-              <Card key={index} className="p-3 text-sm">
+              <Card key={`${summary.type}-${index}`} className="p-3 text-sm">
                 <div className="text-xs text-muted-foreground mb-1">
                   {summaryLabel} • {new Date(summary.generatedAt).toLocaleDateString()}
                 </div>
-                <div className="prose-sm prose max-w-none">
-                  <ReactMarkdown>{summary.content}</ReactMarkdown>
+                <div className="whitespace-pre-wrap text-sm">
+                  {summary.content}
                 </div>
               </Card>
             );
