@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Lightbulb, RefreshCw, Settings, Plus } from "lucide-react";
+import { Lightbulb, RefreshCw, Settings, Plus, Copy, Trash2 } from "lucide-react";
 import { AISummary as AISummaryType } from "@/types/note";
 import { 
   getNoteSummary, 
@@ -118,6 +118,24 @@ const AISummary: React.FC<AISummaryProps> = ({ noteId, noteContent, noteTitle, s
     }
   };
 
+  const handleDeleteSummary = (summaryType: string) => {
+    const updatedSummaries = summaries.filter(summary => summary.type !== summaryType);
+    updateNote(noteId, {
+      aiSummaries: updatedSummaries
+    });
+    toast.success("AI insight deleted");
+  };
+
+  const handleCopySummary = async (content: string) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      toast.success("AI insight copied to clipboard");
+    } catch (error) {
+      console.error("Failed to copy to clipboard:", error);
+      toast.error("Failed to copy to clipboard");
+    }
+  };
+
   const saveApiKey = () => {
     localStorage.setItem("akash-api-key", apiKey);
     setStoredApiKey(apiKey);
@@ -203,8 +221,30 @@ const AISummary: React.FC<AISummaryProps> = ({ noteId, noteContent, noteTitle, s
             
             return (
               <Card key={`${summary.type}-${index}`} className="p-3 text-sm">
-                <div className="text-xs text-muted-foreground mb-1">
-                  {summaryLabel} • {new Date(summary.generatedAt).toLocaleDateString()}
+                <div className="flex justify-between items-start mb-2">
+                  <div className="text-xs text-muted-foreground">
+                    {summaryLabel} • {new Date(summary.generatedAt).toLocaleDateString()}
+                  </div>
+                  <div className="flex space-x-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleCopySummary(summary.content)}
+                      className="h-6 w-6 p-0"
+                      title="Copy to clipboard"
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDeleteSummary(summary.type)}
+                      className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                      title="Delete insight"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
                 </div>
                 <div className="whitespace-pre-wrap text-sm">
                   {summary.content}
