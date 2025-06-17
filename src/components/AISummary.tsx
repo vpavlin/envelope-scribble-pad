@@ -1,14 +1,16 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Lightbulb, RefreshCw, Settings, Plus, Copy, Trash2 } from "lucide-react";
+import { Lightbulb, RefreshCw, Settings, Plus, Copy, Trash2, ChevronDown } from "lucide-react";
 import { AISummary as AISummaryType } from "@/types/note";
 import { 
   getNoteSummary, 
   getNoteEnhancement, 
   executeCustomPrompt, 
-  getConfiguredPrompts 
+  getConfiguredPrompts,
+  getAvailableModels 
 } from "@/utils/aiUtils";
 import { useNotes } from "@/context/NotesContext";
 import { Link } from "react-router-dom";
@@ -28,6 +30,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "@/components/ui/sonner";
 
 interface AISummaryProps {
@@ -43,7 +52,15 @@ interface PromptConfig {
   description: string;
   prompt: string;
   systemPrompt?: string;
+  model?: string;
   builtin?: boolean;
+}
+
+interface ModelInfo {
+  id: string;
+  object: string;
+  created: number;
+  owned_by: string;
 }
 
 const AISummary: React.FC<AISummaryProps> = ({ noteId, noteContent, noteTitle, summaries = [] }) => {
@@ -56,6 +73,9 @@ const AISummary: React.FC<AISummaryProps> = ({ noteId, noteContent, noteTitle, s
   );
   const [configuredPrompts, setConfiguredPrompts] = useState<PromptConfig[]>([]);
   const [currentPromptId, setCurrentPromptId] = useState<string | null>(null);
+  const [availableModels, setAvailableModels] = useState<ModelInfo[]>([]);
+  const [selectedModels, setSelectedModels] = useState<Record<string, string>>({});
+  const [isLoadingModels, setIsLoadingModels] = useState(false);
 
   const hasApiKey = !!storedApiKey;
   const hasSummaries = summaries.length > 0;
@@ -64,7 +84,59 @@ const AISummary: React.FC<AISummaryProps> = ({ noteId, noteContent, noteTitle, s
   useEffect(() => {
     const prompts = getConfiguredPrompts();
     setConfiguredPrompts(prompts);
+    
+    // Initialize selected models from stored configurations
+    const promptsConfig = JSON.parse(localStorage.getItem("lope-ai-prompts") || "{}");
+    const initialModels: Record<string, string> = {};
+    prompts.forEach(prompt => {
+      if (prompt.builtin) {
+        initialModels[prompt.id] = promptsConfig[prompt.id]?.model || "Meta-Llama-3-1-8B-Instruct-FP8";
+      } else {
+        initialModels[prompt.id] = prompt.model || "Meta-Llama-3-1-8B-Instruct-FP8";
+      }
+    });
+    setSelectedModels(initialModels);
   }, []);
+
+  // Load available models when API key is available
+  useEffect(() => {
+    if (storedApiKey && availableModels.length === 0) {
+      loadAvailableModels();
+    }
+  }, [storedApiKey]);
+
+  const loadAvailableModels = async () => {
+    if (!storedApiKey) return;
+    
+    setIsLoadingModels(true);
+    try {
+      const models = await getAvailableModels(storedApiKey);
+      setAvailableModels(models);
+    } catch (error) {
+      console.error("Failed to load models:", error);
+      toast.error("Failed to load available models");
+    } finally {
+      setIsLoadingModels(false);
+    }
+  };
+
+  const handleModelChange = (promptId: string, modelId: string) => {
+    setSelectedModels(prev => ({
+      ...prev,
+      [promptId]: modelId
+    }));
+    
+    // Save to localStorage for built-in prompts
+    const promptConfig = configuredPrompts.find(p => p.id === promptId);
+    if (promptConfig?.builtin) {
+      const promptsConfig = JSON.parse(localStorage.getItem("lope-ai-prompts") || "{}");
+      promptsConfig[promptId] = {
+        ...promptsConfig[promptId],
+        model: modelId
+      };
+      localStorage.setItem("lope-ai-prompts", JSON.stringify(promptsConfig));
+    }
+  };
 
   const handleGenerateContent = async (promptId: string) => {
     if (!storedApiKey) {
@@ -78,6 +150,7 @@ const AISummary: React.FC<AISummaryProps> = ({ noteId, noteContent, noteTitle, s
     try {
       let content: string;
       const promptConfig = configuredPrompts.find(p => p.id === promptId);
+      const selectedModel = selectedModels[promptId] || "Meta-Llama-3-1-8B-Instruct-FP8";
       
       if (!promptConfig) {
         throw new Error("Prompt configuration not found");
@@ -85,12 +158,12 @@ const AISummary: React.FC<AISummaryProps> = ({ noteId, noteContent, noteTitle, s
       
       // Handle built-in prompts with specific functions
       if (promptId === 'summary') {
-        content = await getNoteSummary(noteContent, storedApiKey, noteTitle);
+        content = await getNoteSummary(noteContent, storedApiKey, noteTitle, selectedModel);
       } else if (promptId === 'enhancement') {
-        content = await getNoteEnhancement(noteContent, storedApiKey, noteTitle);
+        content = await getNoteEnhancement(noteContent, storedApiKey, noteTitle, selectedModel);
       } else {
         // Handle custom prompts
-        content = await executeCustomPrompt(noteContent, storedApiKey, promptId, noteTitle);
+        content = await executeCustomPrompt(noteContent, storedApiKey, promptId, noteTitle, selectedModel);
       }
       
       const newSummary: AISummaryType = {
@@ -156,21 +229,53 @@ const AISummary: React.FC<AISummaryProps> = ({ noteId, noteContent, noteTitle, s
         </h3>
         
         <div className="flex space-x-2">
-          {/* Built-in prompts as direct buttons */}
+          {/* Built-in prompts with model selection */}
           {builtInPrompts.map(prompt => (
-            <Button
-              key={prompt.id}
-              variant="outline"
-              size="sm"
-              onClick={() => handleGenerateContent(prompt.id)}
-              disabled={isGenerating || !noteContent}
-              title={prompt.description}
-            >
-              {isGenerating && currentPromptId === prompt.id ? (
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-              ) : null}
-              {prompt.label}
-            </Button>
+            <div key={prompt.id} className="flex items-center space-x-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleGenerateContent(prompt.id)}
+                disabled={isGenerating || !noteContent}
+                title={prompt.description}
+              >
+                {isGenerating && currentPromptId === prompt.id ? (
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                ) : null}
+                {prompt.label}
+              </Button>
+              
+              {availableModels.length > 0 && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                      <ChevronDown className="h-3 w-3" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-64">
+                    <DropdownMenuLabel>Select Model</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <div className="p-2">
+                      <Select
+                        value={selectedModels[prompt.id] || "Meta-Llama-3-1-8B-Instruct-FP8"}
+                        onValueChange={(value) => handleModelChange(prompt.id, value)}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableModels.map(model => (
+                            <SelectItem key={model.id} value={model.id}>
+                              {model.id}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </div>
           ))}
           
           {/* Custom prompts in dropdown */}
