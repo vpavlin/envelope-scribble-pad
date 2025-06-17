@@ -13,10 +13,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { initializeWaku, getSyncConfig, setSyncConfig, generateSecurePassword } from "@/utils/wakuSync";
 import { exportAllData, importAllData, downloadJson, readFileAsText } from "@/utils/exportImport";
 import { useNotes } from "@/context/NotesContext";
-import { getConfiguredPrompts, savePromptConfig } from "@/utils/aiUtils";
+import { getConfiguredPrompts, savePromptConfig, getAvailableModels } from "@/utils/aiUtils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -29,7 +36,8 @@ const customPromptSchema = z.object({
   label: z.string().min(1, "Button label is required"),
   description: z.string().min(1, "Description is required"),
   prompt: z.string().min(1, "Prompt text is required"),
-  systemPrompt: z.string().optional()
+  systemPrompt: z.string().optional(),
+  model: z.string().optional()
 });
 
 // Schema for built-in prompt form
@@ -37,6 +45,13 @@ const builtInPromptSchema = z.object({
   prompt: z.string().min(1, "Prompt text is required"),
   systemPrompt: z.string().min(1, "System prompt is required")
 });
+
+interface ModelInfo {
+  id: string;
+  object: string;
+  created: number;
+  owned_by: string;
+}
 
 const Settings = () => {
   // AI Prompts state
@@ -55,6 +70,8 @@ const Settings = () => {
   const [isEditingPrompt, setIsEditingPrompt] = useState<string | null>(null);
   const [isPromptDialogOpen, setIsPromptDialogOpen] = useState(false);
   const [selectedPromptType, setSelectedPromptType] = useState<"summary" | "enhancement" | null>(null);
+  const [availableModels, setAvailableModels] = useState<ModelInfo[]>([]);
+  const [isLoadingModels, setIsLoadingModels] = useState(false);
 
   // Forms
   const customPromptForm = useForm<z.infer<typeof customPromptSchema>>({
@@ -63,7 +80,8 @@ const Settings = () => {
       label: "",
       description: "",
       prompt: "",
-      systemPrompt: "You are a helpful assistant analyzing the provided text."
+      systemPrompt: "You are a helpful assistant analyzing the provided text.",
+      model: "Meta-Llama-3-1-8B-Instruct-FP8"
     }
   });
 
@@ -95,6 +113,11 @@ const Settings = () => {
     
     // Load AI prompts config
     loadPromptConfig();
+    
+    // Load available models if API key exists
+    if (savedApiKey) {
+      loadAvailableModels(savedApiKey);
+    }
   }, []);
   
   const loadPromptConfig = () => {
@@ -125,14 +148,33 @@ const Settings = () => {
     }
   };
 
+  const loadAvailableModels = async (key: string) => {
+    setIsLoadingModels(true);
+    try {
+      const models = await getAvailableModels(key);
+      setAvailableModels(models);
+    } catch (error) {
+      console.error("Failed to load models:", error);
+      toast.error("Failed to load available models");
+    } finally {
+      setIsLoadingModels(false);
+    }
+  };
+
   const saveApiKey = () => {
     localStorage.setItem("akash-api-key", apiKey);
     toast.success("API key saved successfully");
+    
+    // Load models when API key is saved
+    if (apiKey) {
+      loadAvailableModels(apiKey);
+    }
   };
 
   const clearApiKey = () => {
     localStorage.removeItem("akash-api-key");
     setApiKey("");
+    setAvailableModels([]);
     toast.success("API key removed");
   };
   
@@ -250,7 +292,8 @@ const Settings = () => {
       label: "",
       description: "",
       prompt: "",
-      systemPrompt: "You are a helpful assistant analyzing the provided text."
+      systemPrompt: "You are a helpful assistant analyzing the provided text.",
+      model: "Meta-Llama-3-1-8B-Instruct-FP8"
     });
   };
   
@@ -262,7 +305,8 @@ const Settings = () => {
         label: prompt.label,
         description: prompt.description,
         prompt: prompt.prompt,
-        systemPrompt: prompt.systemPrompt || "You are a helpful assistant analyzing the provided text."
+        systemPrompt: prompt.systemPrompt || "You are a helpful assistant analyzing the provided text.",
+        model: prompt.model || "Meta-Llama-3-1-8B-Instruct-FP8"
       });
       
       setIsEditingPrompt(promptId);
@@ -295,7 +339,8 @@ const Settings = () => {
       label: "",
       description: "",
       prompt: "",
-      systemPrompt: "You are a helpful assistant analyzing the provided text."
+      systemPrompt: "You are a helpful assistant analyzing the provided text.",
+      model: "Meta-Llama-3-1-8B-Instruct-FP8"
     });
     setIsPromptDialogOpen(true);
   };
@@ -490,7 +535,17 @@ const Settings = () => {
                         <Card key={prompt.id}>
                           <CardHeader className="py-3">
                             <div className="flex items-center justify-between">
-                              <CardTitle className="text-base">{prompt.label}</CardTitle>
+                              <div className="flex-1">
+                                <CardTitle className="text-base">{prompt.label}</CardTitle>
+                                <CardDescription className="mt-1">
+                                  {prompt.description}
+                                </CardDescription>
+                                {prompt.model && (
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    Model: {prompt.model}
+                                  </p>
+                                )}
+                              </div>
                               <div className="space-x-1">
                                 <Button 
                                   variant="ghost" 
@@ -508,9 +563,6 @@ const Settings = () => {
                                 </Button>
                               </div>
                             </div>
-                            <CardDescription>
-                              {prompt.description}
-                            </CardDescription>
                           </CardHeader>
                         </Card>
                       ))}
@@ -841,6 +893,44 @@ const Settings = () => {
                     </FormControl>
                     <FormDescription>
                       A brief description of what this prompt does.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={customPromptForm.control}
+                name="model"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>AI Model</FormLabel>
+                    <FormControl>
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a model" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {isLoadingModels ? (
+                            <SelectItem value="" disabled>
+                              Loading models...
+                            </SelectItem>
+                          ) : availableModels.length > 0 ? (
+                            availableModels.map(model => (
+                              <SelectItem key={model.id} value={model.id}>
+                                {model.id}
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <SelectItem value="Meta-Llama-3-1-8B-Instruct-FP8">
+                              Meta-Llama-3-1-8B-Instruct-FP8 (default)
+                            </SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormDescription>
+                      Choose which AI model to use for this prompt.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
