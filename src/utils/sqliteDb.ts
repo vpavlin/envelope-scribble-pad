@@ -1,3 +1,4 @@
+
 import initSqlJs, { Database } from 'sql.js';
 
 // Database instance
@@ -19,11 +20,22 @@ export const initializeDb = async (): Promise<Database> => {
     if (savedDb) {
       const uint8Array = new Uint8Array(JSON.parse(savedDb));
       db = new SQL.Database(uint8Array);
+      
+      // Check if we need to add missing columns
+      try {
+        // Try to add aiSummaries column if it doesn't exist
+        db.run(`ALTER TABLE notes ADD COLUMN aiSummaries TEXT`);
+        console.log("Added aiSummaries column to notes table");
+      } catch (error) {
+        // Column might already exist, ignore error
+      }
+      
+      saveDatabase();
     } else {
       // Create new database
       db = new SQL.Database();
       
-      // Create tables
+      // Create tables with all necessary columns
       db.run(`
         CREATE TABLE IF NOT EXISTS notes (
           id TEXT PRIMARY KEY,
@@ -39,7 +51,8 @@ export const initializeDb = async (): Promise<Database> => {
           previousVersions TEXT, -- JSON string
           contentHash TEXT,
           restoredFrom INTEGER,
-          deviceId TEXT
+          deviceId TEXT,
+          aiSummaries TEXT -- JSON string
         )
       `);
       
@@ -99,6 +112,7 @@ export const getAllItems = async <T>(tableName: string): Promise<T[]> => {
         if (row.comments) row.comments = JSON.parse(row.comments as string);
         if (row.attachments) row.attachments = JSON.parse(row.attachments as string);
         if (row.previousVersions) row.previousVersions = JSON.parse(row.previousVersions as string);
+        if (row.aiSummaries) row.aiSummaries = JSON.parse(row.aiSummaries as string);
       }
       
       results.push(row as T);
@@ -129,6 +143,7 @@ export const getItemById = async <T>(tableName: string, id: string): Promise<T |
         if (row.comments) row.comments = JSON.parse(row.comments as string);
         if (row.attachments) row.attachments = JSON.parse(row.attachments as string);
         if (row.previousVersions) row.previousVersions = JSON.parse(row.previousVersions as string);
+        if (row.aiSummaries) row.aiSummaries = JSON.parse(row.aiSummaries as string);
       }
       
       stmt.free();
@@ -155,7 +170,7 @@ export const addItem = async <T extends Record<string, any>>(tableName: string, 
     if (tableName === 'notes') {
       const processedValues = values.map((value, index) => {
         const column = columns[index];
-        if (['labelIds', 'comments', 'attachments', 'previousVersions'].includes(column)) {
+        if (['labelIds', 'comments', 'attachments', 'previousVersions', 'aiSummaries'].includes(column)) {
           return JSON.stringify(value || []);
         }
         return value;
@@ -197,7 +212,7 @@ export const updateItem = async <T extends Record<string, any>>(tableName: strin
     if (tableName === 'notes') {
       const processedValues = values.map((value, index) => {
         const column = columns[index];
-        if (['labelIds', 'comments', 'attachments', 'previousVersions'].includes(column)) {
+        if (['labelIds', 'comments', 'attachments', 'previousVersions', 'aiSummaries'].includes(column)) {
           return JSON.stringify(value || []);
         }
         return value;
