@@ -1,6 +1,7 @@
 
 import { Note, Envelope, Label } from "@/types/note";
 import * as storage from "./storage";
+import * as sqliteDb from "./sqliteDb";
 
 export interface ExportData {
   notes: Note[];
@@ -53,7 +54,7 @@ export const importAllData = async (jsonData: string): Promise<void> => {
       throw new Error("Invalid import data format");
     }
     
-    console.log("Importing data:", importData);
+    console.log("Starting import with data:", importData);
     
     // Process attachments for imported notes (recreate object URLs)
     for (const note of importData.notes) {
@@ -95,12 +96,26 @@ export const importAllData = async (jsonData: string): Promise<void> => {
       
       // Ensure all notes have comments array
       note.comments = note.comments || [];
+      
+      // Ensure all notes have version information
+      if (note.version === undefined) {
+        note.version = 1;
+        note.previousVersions = [];
+      }
     }
     
-    // Import all data
-    await storage.saveNotes(importData.notes);
-    await storage.saveEnvelopes(importData.envelopes);
-    await storage.saveLabels(importData.labels);
+    // Import data directly using SQLite functions to ensure it works
+    console.log("Importing envelopes:", importData.envelopes.length);
+    await sqliteDb.saveAllItems("envelopes", importData.envelopes);
+    
+    console.log("Importing labels:", importData.labels.length);
+    await sqliteDb.saveAllItems("labels", importData.labels);
+    
+    console.log("Importing notes:", importData.notes.length);
+    await sqliteDb.saveAllItems("notes", importData.notes);
+    
+    // Force save the database
+    sqliteDb.saveDatabase();
     
     console.log("Import completed successfully");
     return;
