@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { Note, NoteVersion, Envelope, Label, Comment, SortOptions, Attachment, MessageType } from "@/types/note";
 import * as storage from "@/utils/storage";
-import * as indexedDb from "@/utils/indexedDb";
+import * as sqliteDb from "@/utils/sqliteDb";
 import { emit, subscribe, isWakuInitialized, initializeWaku, getSyncConfig } from "@/utils/wakuSync";
 import { toast } from "@/components/ui/sonner";
 import { Dispatcher } from "waku-dispatcher";
@@ -850,7 +850,7 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Attachment operations
   const addAttachment = async (noteId: string, file: File): Promise<Attachment> => {
     // Read file content as base64
-    const fileContent = await indexedDb.blobToBase64(file);
+    const fileContent = await sqliteDb.blobToBase64(file);
     
     // Create a local URL for the file
     const fileUrl = URL.createObjectURL(file);
