@@ -72,6 +72,13 @@ const Settings = () => {
   const [selectedPromptType, setSelectedPromptType] = useState<"summary" | "enhancement" | null>(null);
   const [availableModels, setAvailableModels] = useState<ModelInfo[]>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
+  const [importPreview, setImportPreview] = useState<{
+    notes: number;
+    envelopes: number;
+    labels: number;
+  } | null>(null);
+  const [pendingImportData, setPendingImportData] = useState<string | null>(null);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
 
   // Forms
   const customPromptForm = useForm<z.infer<typeof customPromptSchema>>({
@@ -384,16 +391,14 @@ const Settings = () => {
         fileInputRef.current.value = "";
       }
       
-      // Show preview dialog with counts
-      document.getElementById("import-dialog-trigger")?.click();
-      
-      // Store the data in a state or ref to use when the user confirms
-      (window as any).importData = jsonData;
-      
-      // Update UI with counts
-      document.getElementById("import-notes-count")!.textContent = noteCount.toString();
-      document.getElementById("import-envelopes-count")!.textContent = envelopeCount.toString();
-      document.getElementById("import-labels-count")!.textContent = labelCount.toString();
+      // Set preview data and pending import data
+      setImportPreview({
+        notes: noteCount,
+        envelopes: envelopeCount,
+        labels: labelCount
+      });
+      setPendingImportData(jsonData);
+      setIsImportDialogOpen(true);
       
     } catch (error) {
       console.error("Error reading import file:", error);
@@ -402,18 +407,20 @@ const Settings = () => {
   };
   
   const confirmImport = async () => {
+    if (!pendingImportData) {
+      toast.error("No import data found");
+      return;
+    }
+    
     setIsImporting(true);
     try {
-      const jsonData = (window as any).importData;
-      if (!jsonData) {
-        throw new Error("No import data found");
-      }
-      
-      await importAllData(jsonData);
+      await importAllData(pendingImportData);
       toast.success("Data imported successfully");
       
       // Clean up
-      (window as any).importData = null;
+      setPendingImportData(null);
+      setImportPreview(null);
+      setIsImportDialogOpen(false);
       
       // Recommend refresh
       setTimeout(() => {
@@ -431,6 +438,12 @@ const Settings = () => {
     } finally {
       setIsImporting(false);
     }
+  };
+
+  const cancelImport = () => {
+    setPendingImportData(null);
+    setImportPreview(null);
+    setIsImportDialogOpen(false);
   };
 
   return (
@@ -826,27 +839,32 @@ const Settings = () => {
         </Card>
       </div>
       
-      {/* Hidden AlertDialog for import confirmation */}
-      <AlertDialog>
-        <AlertDialogTrigger id="import-dialog-trigger" className="hidden">Open</AlertDialogTrigger>
+      {/* Fixed AlertDialog for import confirmation */}
+      <AlertDialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Import Data</AlertDialogTitle>
             <AlertDialogDescription>
-              You are about to import:
-              <ul className="list-disc pl-5 mt-2">
-                <li><span id="import-notes-count">0</span> notes</li>
-                <li><span id="import-envelopes-count">0</span> envelopes</li>
-                <li><span id="import-labels-count">0</span> labels</li>
-              </ul>
-              <p className="mt-2">
-                This will overwrite your existing data. Are you sure you want to proceed?
-              </p>
+              {importPreview ? (
+                <>
+                  You are about to import:
+                  <ul className="list-disc pl-5 mt-2">
+                    <li>{importPreview.notes} notes</li>
+                    <li>{importPreview.envelopes} envelopes</li>
+                    <li>{importPreview.labels} labels</li>
+                  </ul>
+                  <p className="mt-2">
+                    This will overwrite your existing data. Are you sure you want to proceed?
+                  </p>
+                </>
+              ) : (
+                "Preparing import data..."
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmImport} disabled={isImporting}>
+            <AlertDialogCancel onClick={cancelImport}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmImport} disabled={isImporting || !importPreview}>
               {isImporting ? "Importing..." : "Import"}
             </AlertDialogAction>
           </AlertDialogFooter>
