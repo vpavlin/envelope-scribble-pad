@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNotes } from "@/context/NotesContext";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -261,64 +262,70 @@ const NoteEditor = () => {
   console.log("NoteEditor rendering with content:", content);
 
   return (
-    <div className={`flex flex-col h-full ${isMobile ? "p-4" : "p-6"}`}>
-      <NoteEditorHeader
-        note={activeNote}
-        title={title}
-        onTitleChange={handleTitleChange}
-        onDelete={() => setIsDeleteDialogOpen(true)}
-        onSync={handleSyncNote}
-        onBackToList={handleBackToList}
-        isSyncing={isSyncing}
-        isMobile={isMobile}
-      />
+    <div className={`flex flex-col h-full overflow-hidden ${isMobile ? "p-4" : "p-6"}`}>
+      {/* Main note editing section */}
+      <div className="flex flex-col flex-1 min-h-0 space-y-4">
+        <NoteEditorHeader
+          note={activeNote}
+          title={title}
+          onTitleChange={handleTitleChange}
+          onDelete={() => setIsDeleteDialogOpen(true)}
+          onSync={handleSyncNote}
+          onBackToList={handleBackToList}
+          isSyncing={isSyncing}
+          isMobile={isMobile}
+        />
+        
+        <NoteEditorMetadata
+          note={activeNote}
+          envelopeId={envelopeId}
+          selectedLabelIds={selectedLabelIds}
+          envelopes={envelopes}
+          labels={labels}
+          onEnvelopeChange={handleEnvelopeChange}
+          onToggleLabel={toggleLabel}
+        />
+        
+        <NoteEditorContent
+          content={content}
+          activeTab={activeTab}
+          onContentChange={handleContentChange}
+          onTabChange={setActiveTab}
+        />
+        
+        <NoteEditorActions
+          note={activeNote}
+          isUploading={isUploading}
+          isSyncing={isSyncing}
+          fileInputRef={fileInputRef}
+          onFileInputChange={handleFileInputChange}
+          onUploadClick={handleUploadClick}
+          onTakePhoto={handleTakePhoto}
+          onSync={handleSyncNote}
+        />
+      </div>
       
-      <NoteEditorMetadata
-        note={activeNote}
-        envelopeId={envelopeId}
-        selectedLabelIds={selectedLabelIds}
-        envelopes={envelopes}
-        labels={labels}
-        onEnvelopeChange={handleEnvelopeChange}
-        onToggleLabel={toggleLabel}
-      />
-      
-      <NoteEditorContent
-        content={content}
-        activeTab={activeTab}
-        onContentChange={handleContentChange}
-        onTabChange={setActiveTab}
-      />
-      
-      <NoteEditorActions
-        note={activeNote}
-        isUploading={isUploading}
-        isSyncing={isSyncing}
-        fileInputRef={fileInputRef}
-        onFileInputChange={handleFileInputChange}
-        onUploadClick={handleUploadClick}
-        onTakePhoto={handleTakePhoto}
-        onSync={handleSyncNote}
-      />
-      
-      {/* Attachment List */}
-      <AttachmentList 
-        noteId={activeNote.id} 
-        attachments={activeNote.attachments || []}
-      />
-      
-      {/* AI Summary Section */}
-      <AISummary 
-        noteId={activeNote.id}
-        noteContent={content}
-        noteTitle={title}
-        summaries={activeNote.aiSummaries}
-      />
-      
-      <CommentSection 
-        noteId={activeNote.id}
-        comments={activeNote.comments}
-      />
+      {/* Secondary sections in a scrollable area */}
+      <div className="flex-shrink-0 space-y-4 overflow-y-auto max-h-80 mt-4">
+        {/* Attachment List */}
+        <AttachmentList 
+          noteId={activeNote.id} 
+          attachments={activeNote.attachments || []}
+        />
+        
+        {/* AI Summary Section */}
+        <AISummary 
+          noteId={activeNote.id}
+          noteContent={content}
+          noteTitle={title}
+          summaries={activeNote.aiSummaries}
+        />
+        
+        <CommentSection 
+          noteId={activeNote.id}
+          comments={activeNote.comments}
+        />
+      </div>
       
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
