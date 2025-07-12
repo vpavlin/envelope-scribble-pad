@@ -1,5 +1,6 @@
 
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { useNotes } from "@/context/NotesContext";
 import { Note } from "@/types/note";
 import { Calendar, MessageSquare, Paperclip } from "lucide-react";
@@ -12,7 +13,8 @@ interface NoteCardProps {
 }
 
 const NoteCard: React.FC<NoteCardProps> = ({ note }) => {
-  const { setActiveNote, labels, activeNote, setActiveNoteId } = useNotes();
+  const { labels, activeNote } = useNotes();
+  const navigate = useNavigate();
 
   const noteLabels = labels.filter(label => note.labelIds.includes(label.id));
   const formattedDate = format(new Date(note.createdAt), "MMM d, yyyy");
@@ -34,8 +36,7 @@ const NoteCard: React.FC<NoteCardProps> = ({ note }) => {
   };
 
   const handleNoteClick = () => {
-    setActiveNoteId(note.id);
-    setActiveNote(note);
+    navigate(`/note/${note.id}`);
   };
 
   const attachmentsCount = note.attachments?.length || 0;

@@ -1,11 +1,10 @@
 
 import React from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Trash2, RefreshCcw, ArrowLeft, ArrowDownUp } from "lucide-react";
-import NoteHistory from "./NoteHistory";
+import { useNavigate } from "react-router-dom";
 import { Note } from "@/types/note";
-import { isWakuInitialized } from "@/utils/wakuSync";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, Trash2, RefreshCw } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface NoteEditorHeaderProps {
   note: Note;
@@ -18,7 +17,7 @@ interface NoteEditorHeaderProps {
   isMobile: boolean;
 }
 
-const NoteEditorHeader: React.FC<NoteEditorHeaderProps> = ({
+const NoteEditorHeader = ({
   note,
   title,
   onTitleChange,
@@ -27,68 +26,57 @@ const NoteEditorHeader: React.FC<NoteEditorHeaderProps> = ({
   onBackToList,
   isSyncing,
   isMobile
-}) => {
+}: NoteEditorHeaderProps) => {
+  const navigate = useNavigate();
+
+  const handleBackToList = () => {
+    navigate(-1); // Use browser back functionality
+  };
+
   return (
-    <>
+    <div className="flex items-center justify-between mb-4">
       {isMobile && (
         <Button 
           variant="ghost" 
           size="sm" 
-          className="mb-4 -ml-2 flex items-center" 
-          onClick={onBackToList}
+          onClick={handleBackToList}
+          className="mr-2"
         >
-          <ArrowLeft className="h-4 w-4 mr-1" />
-          Back to notes
+          <ArrowLeft className="h-4 w-4" />
         </Button>
       )}
       
-      <div className="mb-4 flex items-center justify-between">
-        <Input
-          value={title}
-          onChange={onTitleChange}
-          className="flex-grow text-xl font-medium"
-          placeholder="Note title"
-        />
-        <div className="flex space-x-1">
-          {/* Add version info if available */}
-          <div className="text-xs text-muted-foreground px-2 py-1 flex items-center">
-            {note.version && note.version > 1 && (
-              <span>v{note.version}</span>
-            )}
-            {note.restoredFrom && (
-              <div className="flex items-center text-xs text-blue-500 ml-2">
-                <ArrowDownUp className="h-3 w-3 mr-1" />
-                <span>Restored from v{note.restoredFrom}</span>
-              </div>
-            )}
-          </div>
-          
-          {/* Only show history button if there are previous versions */}
-          {note.previousVersions && note.previousVersions.length > 0 && (
-            <NoteHistory noteId={note.id} />
-          )}
-          
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={onDelete}
-          >
-            <Trash2 className="h-5 w-5" />
-          </Button>
-          
-          {isWakuInitialized() && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onSync}
-              disabled={isSyncing}
-            >
-              <RefreshCcw className={`h-5 w-5 ${isSyncing ? "animate-spin" : ""}`} />
-            </Button>
-          )}
-        </div>
+      <input
+        type="text"
+        value={title}
+        onChange={onTitleChange}
+        className="flex-1 text-xl font-semibold bg-transparent border-none outline-none focus:ring-0"
+        placeholder="Note title..."
+      />
+      
+      <div className="flex items-center space-x-2">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={onSync}
+          disabled={isSyncing}
+          className="flex items-center"
+        >
+          <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
+          {!isMobile && <span className="ml-1">Sync</span>}
+        </Button>
+        
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={onDelete}
+          className="text-destructive hover:text-destructive"
+        >
+          <Trash2 className="h-4 w-4" />
+          {!isMobile && <span className="ml-1">Delete</span>}
+        </Button>
       </div>
-    </>
+    </div>
   );
 };
 
