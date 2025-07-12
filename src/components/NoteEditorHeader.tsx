@@ -1,10 +1,8 @@
 
 import React from "react";
-import { useNavigate } from "react-router-dom";
 import { Note } from "@/types/note";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Trash2, RefreshCw } from "lucide-react";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 interface NoteEditorHeaderProps {
   note: Note;
@@ -27,19 +25,13 @@ const NoteEditorHeader = ({
   isSyncing,
   isMobile
 }: NoteEditorHeaderProps) => {
-  const navigate = useNavigate();
-
-  const handleBackToList = () => {
-    navigate(-1); // Use browser back functionality
-  };
-
   return (
     <div className="flex items-center justify-between mb-4">
       {isMobile && (
         <Button 
           variant="ghost" 
           size="sm" 
-          onClick={handleBackToList}
+          onClick={onBackToList}
           className="mr-2"
         >
           <ArrowLeft className="h-4 w-4" />
