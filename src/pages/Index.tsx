@@ -152,11 +152,9 @@ const Index = () => {
           
           if (note) {
             setActiveNoteId(params.noteId);
-            // Also set the active envelope to the note's envelope if it has one
-            if (note.envelopeId) {
-              setActiveEnvelopeId(note.envelopeId);
-            }
-            // Clear active label when viewing a specific note
+            // DON'T set the active envelope - let the user see all notes in the sidebar
+            // Clear both envelope and label filters when viewing a specific note
+            setActiveEnvelopeId(null);
             setActiveLabelId(null);
           } else {
             // Only redirect if notes have loaded (prevents redirect on initial load)
