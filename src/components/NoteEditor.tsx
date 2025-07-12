@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNotes } from "@/context/NotesContext";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -16,7 +15,7 @@ import CommentSection from "./CommentSection";
 import AISummary from "./AISummary";
 import AttachmentList from "./AttachmentList";
 
-// Debounce function for delaying sync
+// Custom hook for debounced auto-save
 const useDebounce = (callback: Function, delay: number) => {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -258,8 +257,8 @@ const NoteEditor = () => {
   console.log("NoteEditor rendering with content:", content);
 
   return (
-    <div className="h-screen flex flex-col bg-background">
-      {/* Header Section - Fixed */}
+    <div className="h-screen flex flex-col">
+      {/* Header Section - Fixed height */}
       <div className="flex-shrink-0 border-b bg-background">
         <div className="p-4">
           <NoteEditorHeader
@@ -272,9 +271,7 @@ const NoteEditor = () => {
             isSyncing={isSyncing}
             isMobile={isMobile}
           />
-        </div>
-        
-        <div className="px-4 pb-4">
+          
           <NoteEditorMetadata
             note={activeNote}
             envelopeId={envelopeId}
@@ -287,8 +284,8 @@ const NoteEditor = () => {
         </div>
       </div>
 
-      {/* Main Content - Flexible */}
-      <div className="flex-1 flex flex-col min-h-0">
+      {/* Main Content Area - Takes remaining space */}
+      <div className="flex-1 overflow-hidden">
         <NoteEditorContent
           content={content}
           activeTab={activeTab}
@@ -297,7 +294,7 @@ const NoteEditor = () => {
         />
       </div>
 
-      {/* Bottom Section - Fixed */}
+      {/* Footer Section - Fixed height */}
       <div className="flex-shrink-0 border-t bg-background">
         <div className="p-4 space-y-4">
           <NoteEditorActions
@@ -311,7 +308,7 @@ const NoteEditor = () => {
             onSync={handleSyncNote}
           />
           
-          <div className="max-h-80 overflow-y-auto space-y-4">
+          <div className="max-h-60 overflow-y-auto space-y-4">
             <AttachmentList 
               noteId={activeNote.id} 
               attachments={activeNote.attachments || []}
