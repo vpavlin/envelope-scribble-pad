@@ -194,6 +194,7 @@ const NoteEditor = () => {
   };
 
   const handleBackToList = () => {
+    console.log("handleBackToList called - clearing active note");
     setActiveNoteId(null);
   };
 
@@ -282,7 +283,7 @@ const NoteEditor = () => {
         />
       </div>
 
-      {/* Main Content - Simple flex layout */}
+      {/* Main Content */}
       <div className="flex-1 overflow-y-auto">
         <NoteEditorContent
           content={content}
