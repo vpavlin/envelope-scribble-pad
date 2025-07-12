@@ -28,7 +28,7 @@ const NoteEditorActions: React.FC<NoteEditorActionsProps> = ({
   onSync
 }) => {
   return (
-    <div className="mb-4">
+    <div>
       <input 
         type="file" 
         ref={fileInputRef} 
@@ -36,15 +36,15 @@ const NoteEditorActions: React.FC<NoteEditorActionsProps> = ({
         onChange={onFileInputChange}
         multiple
       />
-      <div className="flex space-x-2">
+      <div className="flex flex-wrap gap-2">
         <Button 
           variant="outline" 
           size="sm" 
           onClick={onUploadClick}
           disabled={isUploading}
-          className="flex items-center"
+          className="flex items-center gap-2"
         >
-          <Upload className="h-4 w-4 mr-1" />
+          <Upload className="h-4 w-4" />
           <span>Upload File</span>
         </Button>
         <Button 
@@ -52,9 +52,9 @@ const NoteEditorActions: React.FC<NoteEditorActionsProps> = ({
           size="sm" 
           onClick={onTakePhoto}
           disabled={isUploading}
-          className="flex items-center"
+          className="flex items-center gap-2"
         >
-          <Image className="h-4 w-4 mr-1" />
+          <Image className="h-4 w-4" />
           <span>Take Photo</span>
         </Button>
         <NFCWriter noteId={note.id} noteTitle={note.title} />
@@ -64,9 +64,9 @@ const NoteEditorActions: React.FC<NoteEditorActionsProps> = ({
             size="sm"
             onClick={onSync}
             disabled={isSyncing}
-            className="flex items-center"
+            className="flex items-center gap-2"
           >
-            <RefreshCcw className={`h-4 w-4 mr-1 ${isSyncing ? "animate-spin" : ""}`} />
+            <RefreshCcw className={`h-4 w-4 ${isSyncing ? "animate-spin" : ""}`} />
             <span>Sync Note</span>
           </Button>
         )}

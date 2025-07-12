@@ -23,34 +23,34 @@ const NoteEditorContent: React.FC<NoteEditorContentProps> = ({
   console.log("Active tab:", activeTab);
 
   return (
-    <div className="mb-4">
+    <div className="flex-1 flex flex-col min-h-0">
       <Tabs 
         value={activeTab} 
         onValueChange={onTabChange}
-        className="w-full"
+        className="flex flex-col flex-1 min-h-0"
       >
-        <TabsList className="grid grid-cols-2 mb-4">
-          <TabsTrigger value="editor" className="flex items-center">
-            <Edit className="h-4 w-4 mr-2" />
+        <TabsList className="grid grid-cols-2 w-full mb-4">
+          <TabsTrigger value="editor" className="flex items-center gap-2">
+            <Edit className="h-4 w-4" />
             Editor
           </TabsTrigger>
-          <TabsTrigger value="preview" className="flex items-center">
-            <Eye className="h-4 w-4 mr-2" />
+          <TabsTrigger value="preview" className="flex items-center gap-2">
+            <Eye className="h-4 w-4" />
             Preview
           </TabsTrigger>
         </TabsList>
         
-        <TabsContent value="editor" className="mt-0">
+        <TabsContent value="editor" className="flex-1 min-h-0 mt-0">
           <Textarea
             value={content || ""}
             onChange={onContentChange}
-            className="resize-none w-full min-h-[400px]"
+            className="resize-none w-full h-full min-h-[500px]"
             placeholder="Note content (supports markdown)"
           />
         </TabsContent>
         
-        <TabsContent value="preview" className="mt-0">
-          <div className="prose max-w-none min-h-[400px] border rounded p-4 bg-gray-50 overflow-y-auto">
+        <TabsContent value="preview" className="flex-1 min-h-0 mt-0">
+          <div className="prose max-w-none h-full min-h-[500px] border rounded-md p-4 bg-gray-50 overflow-y-auto">
             {content && content.trim() ? (
               <ReactMarkdown>{content}</ReactMarkdown>
             ) : (

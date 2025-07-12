@@ -262,9 +262,9 @@ const NoteEditor = () => {
   console.log("NoteEditor rendering with content:", content);
 
   return (
-    <div className={`flex flex-col h-full overflow-hidden ${isMobile ? "p-4" : "p-6"}`}>
-      {/* Main note editing section */}
-      <div className="flex flex-col flex-1 min-h-0 space-y-4">
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className={`flex-shrink-0 ${isMobile ? "p-4 pb-2" : "p-6 pb-4"} border-b`}>
         <NoteEditorHeader
           note={activeNote}
           title={title}
@@ -275,7 +275,10 @@ const NoteEditor = () => {
           isSyncing={isSyncing}
           isMobile={isMobile}
         />
-        
+      </div>
+
+      {/* Metadata */}
+      <div className={`flex-shrink-0 ${isMobile ? "px-4 py-2" : "px-6 py-3"} border-b`}>
         <NoteEditorMetadata
           note={activeNote}
           envelopeId={envelopeId}
@@ -285,14 +288,20 @@ const NoteEditor = () => {
           onEnvelopeChange={handleEnvelopeChange}
           onToggleLabel={toggleLabel}
         />
-        
+      </div>
+      
+      {/* Main Content Area */}
+      <div className={`flex-1 flex flex-col min-h-0 ${isMobile ? "p-4" : "p-6"}`}>
         <NoteEditorContent
           content={content}
           activeTab={activeTab}
           onContentChange={handleContentChange}
           onTabChange={setActiveTab}
         />
-        
+      </div>
+      
+      {/* Actions */}
+      <div className={`flex-shrink-0 ${isMobile ? "px-4 pb-2" : "px-6 pb-4"} border-t pt-4`}>
         <NoteEditorActions
           note={activeNote}
           isUploading={isUploading}
@@ -306,14 +315,12 @@ const NoteEditor = () => {
       </div>
       
       {/* Secondary sections in a scrollable area */}
-      <div className="flex-shrink-0 space-y-4 overflow-y-auto max-h-80 mt-4">
-        {/* Attachment List */}
+      <div className={`flex-shrink-0 border-t ${isMobile ? "p-4" : "p-6"} space-y-6 overflow-y-auto max-h-80`}>
         <AttachmentList 
           noteId={activeNote.id} 
           attachments={activeNote.attachments || []}
         />
         
-        {/* AI Summary Section */}
         <AISummary 
           noteId={activeNote.id}
           noteContent={content}
