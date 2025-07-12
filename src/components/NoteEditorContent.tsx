@@ -36,11 +36,11 @@ const NoteEditorContent: React.FC<NoteEditorContentProps> = ({
           </TabsTrigger>
         </TabsList>
         
-        <TabsContent value="editor" className="flex-1 mt-0 overflow-hidden">
+        <TabsContent value="editor" className="flex-1 mt-0 overflow-y-auto">
           <Textarea
             value={content || ""}
             onChange={onContentChange}
-            className="w-full h-full resize-y border rounded-md"
+            className="w-full min-h-[400px] resize-y border rounded-md"
             placeholder="Start writing your note... (supports markdown)"
           />
         </TabsContent>
