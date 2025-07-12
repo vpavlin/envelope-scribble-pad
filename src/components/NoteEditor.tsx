@@ -257,46 +257,42 @@ const NoteEditor = () => {
   console.log("NoteEditor rendering with content:", content);
 
   return (
-    <div className="h-screen flex flex-col">
-      {/* Header Section - Fixed height */}
-      <div className="flex-shrink-0 border-b bg-background">
-        <div className="p-4">
-          <NoteEditorHeader
-            note={activeNote}
-            title={title}
-            onTitleChange={handleTitleChange}
-            onDelete={() => setIsDeleteDialogOpen(true)}
-            onSync={handleSyncNote}
-            onBackToList={handleBackToList}
-            isSyncing={isSyncing}
-            isMobile={isMobile}
-          />
-          
-          <NoteEditorMetadata
-            note={activeNote}
-            envelopeId={envelopeId}
-            selectedLabelIds={selectedLabelIds}
-            envelopes={envelopes}
-            labels={labels}
-            onEnvelopeChange={handleEnvelopeChange}
-            onToggleLabel={toggleLabel}
-          />
-        </div>
+    <div className="h-full flex flex-col">
+      {/* Header */}
+      <div className="border-b bg-background p-4">
+        <NoteEditorHeader
+          note={activeNote}
+          title={title}
+          onTitleChange={handleTitleChange}
+          onDelete={() => setIsDeleteDialogOpen(true)}
+          onSync={handleSyncNote}
+          onBackToList={handleBackToList}
+          isSyncing={isSyncing}
+          isMobile={isMobile}
+        />
+        
+        <NoteEditorMetadata
+          note={activeNote}
+          envelopeId={envelopeId}
+          selectedLabelIds={selectedLabelIds}
+          envelopes={envelopes}
+          labels={labels}
+          onEnvelopeChange={handleEnvelopeChange}
+          onToggleLabel={toggleLabel}
+        />
       </div>
 
-      {/* Main Content Area - Takes remaining space */}
-      <div className="flex-1 overflow-hidden">
+      {/* Main Content - Simple flex layout */}
+      <div className="flex-1 overflow-y-auto">
         <NoteEditorContent
           content={content}
           activeTab={activeTab}
           onContentChange={handleContentChange}
           onTabChange={setActiveTab}
         />
-      </div>
-
-      {/* Footer Section - Fixed height */}
-      <div className="flex-shrink-0 border-t bg-background">
-        <div className="p-4 space-y-4">
+        
+        {/* Bottom Section */}
+        <div className="p-4 space-y-4 border-t bg-background">
           <NoteEditorActions
             note={activeNote}
             isUploading={isUploading}
@@ -308,24 +304,22 @@ const NoteEditor = () => {
             onSync={handleSyncNote}
           />
           
-          <div className="max-h-60 overflow-y-auto space-y-4">
-            <AttachmentList 
-              noteId={activeNote.id} 
-              attachments={activeNote.attachments || []}
-            />
-            
-            <AISummary 
-              noteId={activeNote.id}
-              noteContent={content}
-              noteTitle={title}
-              summaries={activeNote.aiSummaries}
-            />
-            
-            <CommentSection 
-              noteId={activeNote.id}
-              comments={activeNote.comments}
-            />
-          </div>
+          <AttachmentList 
+            noteId={activeNote.id} 
+            attachments={activeNote.attachments || []}
+          />
+          
+          <AISummary 
+            noteId={activeNote.id}
+            noteContent={content}
+            noteTitle={title}
+            summaries={activeNote.aiSummaries}
+          />
+          
+          <CommentSection 
+            noteId={activeNote.id}
+            comments={activeNote.comments}
+          />
         </div>
       </div>
 
