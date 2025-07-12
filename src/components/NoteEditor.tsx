@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { useNotes } from "@/context/NotesContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
@@ -44,6 +45,7 @@ const useDebounce = (callback: Function, delay: number) => {
 };
 
 const NoteEditor = () => {
+  const navigate = useNavigate();
   const { 
     activeNote, 
     updateNote, 
@@ -194,8 +196,8 @@ const NoteEditor = () => {
   };
 
   const handleBackToList = () => {
-    console.log("handleBackToList called - clearing active note");
-    setActiveNoteId(null);
+    console.log("handleBackToList called - navigating to home");
+    navigate('/');
   };
 
   const handleFileInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
