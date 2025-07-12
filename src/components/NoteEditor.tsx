@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNotes } from "@/context/NotesContext";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -78,11 +77,17 @@ const NoteEditor = () => {
   }, 2000); // 2 second delay
 
   useEffect(() => {
+    console.log("NoteEditor: activeNote changed", activeNote);
     if (activeNote) {
-      setTitle(activeNote.title);
-      setContent(activeNote.content);
-      setEnvelopeId(activeNote.envelopeId);
-      setSelectedLabelIds(activeNote.labelIds);
+      console.log("Setting note data:", {
+        title: activeNote.title,
+        content: activeNote.content,
+        contentLength: activeNote.content?.length || 0
+      });
+      setTitle(activeNote.title || "");
+      setContent(activeNote.content || "");
+      setEnvelopeId(activeNote.envelopeId || "");
+      setSelectedLabelIds(activeNote.labelIds || []);
       setIsDirty(false);
     }
   }, [activeNote]);
@@ -111,6 +116,7 @@ const NoteEditor = () => {
   }
 
   const handleSave = async () => {
+    console.log("Saving note with content:", content);
     await updateNote(activeNote.id, {
       title,
       content,
@@ -125,6 +131,7 @@ const NoteEditor = () => {
   };
 
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    console.log("Content changed:", e.target.value);
     setContent(e.target.value);
     setIsDirty(true);
   };
@@ -250,6 +257,8 @@ const NoteEditor = () => {
       }, 1000);
     }
   };
+
+  console.log("NoteEditor rendering with content:", content);
 
   return (
     <div className={`flex flex-col h-full ${isMobile ? "p-4" : "p-6"}`}>
