@@ -53,9 +53,6 @@ const Index = () => {
     notes,
     envelopes,
     labels,
-    activeNoteId,
-    activeEnvelopeId,
-    activeLabelId,
     addNote,
     defaultEnvelopeId
   } = useNotes();
@@ -100,7 +97,16 @@ const Index = () => {
     const handleRouting = async () => {
       try {
         console.log("Routing params:", params);
-        console.log("Current state:", { activeNoteId, activeEnvelopeId, activeLabelId });
+        console.log("Location pathname:", location.pathname);
+        
+        // Handle home route FIRST - clear all filters and active note
+        if (location.pathname === '/') {
+          console.log("Handling home route - clearing all filters and active note");
+          setActiveEnvelopeId(null);
+          setActiveLabelId(null);
+          setActiveNoteId(null);
+          return; // Exit early to prevent other route handling
+        }
         
         // Handle envelope routes
         if (params.envelopeId) {
@@ -109,11 +115,7 @@ const Index = () => {
           
           if (envelopeExists) {
             setActiveEnvelopeId(params.envelopeId);
-            // Only clear active note if we're changing envelopes
-            if (activeEnvelopeId !== params.envelopeId) {
-              setActiveNoteId(null);
-            }
-            // Clear active label when viewing an envelope
+            setActiveNoteId(null);
             setActiveLabelId(null);
           } else {
             // Only redirect if envelopes have loaded (prevents redirect on initial load)
@@ -130,11 +132,7 @@ const Index = () => {
           
           if (labelExists) {
             setActiveLabelId(params.labelId);
-            // Only clear active note if we're changing labels
-            if (activeLabelId !== params.labelId) {
-              setActiveNoteId(null);
-            }
-            // Clear active envelope when viewing by label
+            setActiveNoteId(null);
             setActiveEnvelopeId(null);
           } else {
             // Only redirect if labels have loaded (prevents redirect on initial load)
@@ -152,7 +150,6 @@ const Index = () => {
           
           if (note) {
             setActiveNoteId(params.noteId);
-            // DON'T set the active envelope - let the user see all notes in the sidebar
             // Clear both envelope and label filters when viewing a specific note
             setActiveEnvelopeId(null);
             setActiveLabelId(null);
@@ -163,13 +160,6 @@ const Index = () => {
             }
           }
         }
-        // Handle home route - clear all filters and active note
-        else if (location.pathname === '/') {
-          console.log("Handling home route - clearing all filters and active note");
-          setActiveEnvelopeId(null);
-          setActiveLabelId(null);
-          setActiveNoteId(null);
-        }
       } catch (error) {
         console.error("Error in routing logic:", error);
       }
@@ -177,18 +167,17 @@ const Index = () => {
     
     handleRouting();
   }, [
-    params, 
+    location.pathname, // Make location.pathname the first dependency
+    params.envelopeId,
+    params.labelId, 
+    params.noteId,
     notes, 
     envelopes, 
     labels, 
     setActiveNoteId, 
     setActiveEnvelopeId, 
     setActiveLabelId, 
-    navigate,
-    activeEnvelopeId,
-    activeLabelId,
-    activeNoteId,
-    location.pathname
+    navigate
   ]);
 
   return (
