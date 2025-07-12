@@ -27,6 +27,7 @@ import ReactMarkdown from "react-markdown";
 import { emit, isWakuInitialized } from "@/utils/wakuSync";
 import { MessageType } from "@/types/note";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import NFCWriter from "./NFCWriter";
 
 // Debounce function for delaying sync
 const useDebounce = (callback: Function, delay: number) => {
@@ -464,6 +465,7 @@ const NoteEditor = () => {
             <Image className="h-4 w-4 mr-1" />
             <span>Take Photo</span>
           </Button>
+          <NFCWriter noteId={activeNote.id} noteTitle={activeNote.title} />
           {isWakuInitialized() && (
             <Button
               variant="outline"
