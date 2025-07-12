@@ -28,49 +28,43 @@ const NoteEditorActions: React.FC<NoteEditorActionsProps> = ({
   onSync
 }) => {
   return (
-    <div>
-      <input 
-        type="file" 
-        ref={fileInputRef} 
-        className="hidden" 
-        onChange={onFileInputChange}
-        multiple
-      />
-      <div className="flex flex-wrap gap-2">
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={onUploadClick}
-          disabled={isUploading}
+    <div className="flex flex-wrap gap-2">
+      <Button 
+        variant="outline" 
+        size="sm" 
+        onClick={onUploadClick}
+        disabled={isUploading}
+        className="flex items-center gap-2"
+      >
+        <Upload className="h-4 w-4" />
+        <span>Upload File</span>
+      </Button>
+      
+      <Button 
+        variant="outline" 
+        size="sm" 
+        onClick={onTakePhoto}
+        disabled={isUploading}
+        className="flex items-center gap-2"
+      >
+        <Image className="h-4 w-4" />
+        <span>Take Photo</span>
+      </Button>
+      
+      <NFCWriter noteId={note.id} noteTitle={note.title} />
+      
+      {isWakuInitialized() && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onSync}
+          disabled={isSyncing}
           className="flex items-center gap-2"
         >
-          <Upload className="h-4 w-4" />
-          <span>Upload File</span>
+          <RefreshCcw className={`h-4 w-4 ${isSyncing ? "animate-spin" : ""}`} />
+          <span>Sync Note</span>
         </Button>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={onTakePhoto}
-          disabled={isUploading}
-          className="flex items-center gap-2"
-        >
-          <Image className="h-4 w-4" />
-          <span>Take Photo</span>
-        </Button>
-        <NFCWriter noteId={note.id} noteTitle={note.title} />
-        {isWakuInitialized() && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onSync}
-            disabled={isSyncing}
-            className="flex items-center gap-2"
-          >
-            <RefreshCcw className={`h-4 w-4 ${isSyncing ? "animate-spin" : ""}`} />
-            <span>Sync Note</span>
-          </Button>
-        )}
-      </div>
+      )}
     </div>
   );
 };

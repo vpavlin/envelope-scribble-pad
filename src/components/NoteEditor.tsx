@@ -75,7 +75,7 @@ const NoteEditor = () => {
       await handleSave();
       setIsDirty(false);
     }
-  }, 2000); // 2 second delay
+  }, 2000);
 
   useEffect(() => {
     console.log("NoteEditor: activeNote changed", activeNote);
@@ -159,7 +159,6 @@ const NoteEditor = () => {
 
     setIsSyncing(true);
     try {
-      // Force sync the note to other devices
       const success = await emit(MessageType.NOTE_UPDATED, activeNote);
       
       if (success) {
@@ -206,7 +205,6 @@ const NoteEditor = () => {
       try {
         for (let i = 0; i < files.length; i++) {
           const file = files[i];
-          // Check file size (limit to 5MB)
           if (file.size > 5 * 1024 * 1024) {
             toast({
               title: "File too large",
@@ -233,7 +231,6 @@ const NoteEditor = () => {
         console.error("Error uploading file:", error);
       } finally {
         setIsUploading(false);
-        // Reset the file input
         if (fileInputRef.current) {
           fileInputRef.current.value = "";
         }
@@ -250,7 +247,6 @@ const NoteEditor = () => {
       fileInputRef.current.accept = "image/*";
       fileInputRef.current.capture = "environment";
       fileInputRef.current.click();
-      // Reset after click
       setTimeout(() => {
         if (fileInputRef.current) {
           fileInputRef.current.removeAttribute("capture");
@@ -262,36 +258,37 @@ const NoteEditor = () => {
   console.log("NoteEditor rendering with content:", content);
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className={`flex-shrink-0 ${isMobile ? "p-4 pb-2" : "p-6 pb-4"} border-b`}>
-        <NoteEditorHeader
-          note={activeNote}
-          title={title}
-          onTitleChange={handleTitleChange}
-          onDelete={() => setIsDeleteDialogOpen(true)}
-          onSync={handleSyncNote}
-          onBackToList={handleBackToList}
-          isSyncing={isSyncing}
-          isMobile={isMobile}
-        />
+    <div className="h-screen flex flex-col bg-background">
+      {/* Header Section - Fixed */}
+      <div className="flex-shrink-0 border-b bg-background">
+        <div className="p-4">
+          <NoteEditorHeader
+            note={activeNote}
+            title={title}
+            onTitleChange={handleTitleChange}
+            onDelete={() => setIsDeleteDialogOpen(true)}
+            onSync={handleSyncNote}
+            onBackToList={handleBackToList}
+            isSyncing={isSyncing}
+            isMobile={isMobile}
+          />
+        </div>
+        
+        <div className="px-4 pb-4">
+          <NoteEditorMetadata
+            note={activeNote}
+            envelopeId={envelopeId}
+            selectedLabelIds={selectedLabelIds}
+            envelopes={envelopes}
+            labels={labels}
+            onEnvelopeChange={handleEnvelopeChange}
+            onToggleLabel={toggleLabel}
+          />
+        </div>
       </div>
 
-      {/* Metadata */}
-      <div className={`flex-shrink-0 ${isMobile ? "px-4 py-2" : "px-6 py-3"} border-b`}>
-        <NoteEditorMetadata
-          note={activeNote}
-          envelopeId={envelopeId}
-          selectedLabelIds={selectedLabelIds}
-          envelopes={envelopes}
-          labels={labels}
-          onEnvelopeChange={handleEnvelopeChange}
-          onToggleLabel={toggleLabel}
-        />
-      </div>
-      
-      {/* Main Content Area */}
-      <div className={`flex-1 flex flex-col min-h-0 ${isMobile ? "p-4" : "p-6"}`}>
+      {/* Main Content - Flexible */}
+      <div className="flex-1 flex flex-col min-h-0">
         <NoteEditorContent
           content={content}
           activeTab={activeTab}
@@ -299,40 +296,49 @@ const NoteEditor = () => {
           onTabChange={setActiveTab}
         />
       </div>
-      
-      {/* Actions */}
-      <div className={`flex-shrink-0 ${isMobile ? "px-4 pb-2" : "px-6 pb-4"} border-t pt-4`}>
-        <NoteEditorActions
-          note={activeNote}
-          isUploading={isUploading}
-          isSyncing={isSyncing}
-          fileInputRef={fileInputRef}
-          onFileInputChange={handleFileInputChange}
-          onUploadClick={handleUploadClick}
-          onTakePhoto={handleTakePhoto}
-          onSync={handleSyncNote}
-        />
+
+      {/* Bottom Section - Fixed */}
+      <div className="flex-shrink-0 border-t bg-background">
+        <div className="p-4 space-y-4">
+          <NoteEditorActions
+            note={activeNote}
+            isUploading={isUploading}
+            isSyncing={isSyncing}
+            fileInputRef={fileInputRef}
+            onFileInputChange={handleFileInputChange}
+            onUploadClick={handleUploadClick}
+            onTakePhoto={handleTakePhoto}
+            onSync={handleSyncNote}
+          />
+          
+          <div className="max-h-80 overflow-y-auto space-y-4">
+            <AttachmentList 
+              noteId={activeNote.id} 
+              attachments={activeNote.attachments || []}
+            />
+            
+            <AISummary 
+              noteId={activeNote.id}
+              noteContent={content}
+              noteTitle={title}
+              summaries={activeNote.aiSummaries}
+            />
+            
+            <CommentSection 
+              noteId={activeNote.id}
+              comments={activeNote.comments}
+            />
+          </div>
+        </div>
       </div>
-      
-      {/* Secondary sections in a scrollable area */}
-      <div className={`flex-shrink-0 border-t ${isMobile ? "p-4" : "p-6"} space-y-6 overflow-y-auto max-h-80`}>
-        <AttachmentList 
-          noteId={activeNote.id} 
-          attachments={activeNote.attachments || []}
-        />
-        
-        <AISummary 
-          noteId={activeNote.id}
-          noteContent={content}
-          noteTitle={title}
-          summaries={activeNote.aiSummaries}
-        />
-        
-        <CommentSection 
-          noteId={activeNote.id}
-          comments={activeNote.comments}
-        />
-      </div>
+
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        className="hidden" 
+        onChange={handleFileInputChange}
+        multiple
+      />
       
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>

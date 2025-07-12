@@ -23,13 +23,13 @@ const NoteEditorContent: React.FC<NoteEditorContentProps> = ({
   console.log("Active tab:", activeTab);
 
   return (
-    <div className="flex-1 flex flex-col min-h-0">
+    <div className="h-full flex flex-col p-4">
       <Tabs 
         value={activeTab} 
         onValueChange={onTabChange}
-        className="flex flex-col flex-1 min-h-0"
+        className="h-full flex flex-col"
       >
-        <TabsList className="grid grid-cols-2 w-full mb-4">
+        <TabsList className="grid w-full grid-cols-2 mb-4">
           <TabsTrigger value="editor" className="flex items-center gap-2">
             <Edit className="h-4 w-4" />
             Editor
@@ -40,21 +40,23 @@ const NoteEditorContent: React.FC<NoteEditorContentProps> = ({
           </TabsTrigger>
         </TabsList>
         
-        <TabsContent value="editor" className="flex-1 min-h-0 mt-0">
+        <TabsContent value="editor" className="flex-1 mt-0">
           <Textarea
             value={content || ""}
             onChange={onContentChange}
-            className="resize-none w-full h-full min-h-[500px]"
-            placeholder="Note content (supports markdown)"
+            className="h-full resize-none border rounded-md"
+            placeholder="Start writing your note... (supports markdown)"
           />
         </TabsContent>
         
-        <TabsContent value="preview" className="flex-1 min-h-0 mt-0">
-          <div className="prose max-w-none h-full min-h-[500px] border rounded-md p-4 bg-gray-50 overflow-y-auto">
+        <TabsContent value="preview" className="flex-1 mt-0">
+          <div className="h-full border rounded-md p-4 bg-muted/30 overflow-y-auto">
             {content && content.trim() ? (
-              <ReactMarkdown>{content}</ReactMarkdown>
+              <div className="prose prose-sm max-w-none">
+                <ReactMarkdown>{content}</ReactMarkdown>
+              </div>
             ) : (
-              <div className="text-muted-foreground">
+              <div className="text-muted-foreground text-center py-8">
                 No content to preview
               </div>
             )}
