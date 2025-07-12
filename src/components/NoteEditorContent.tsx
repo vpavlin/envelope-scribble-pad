@@ -23,13 +23,13 @@ const NoteEditorContent: React.FC<NoteEditorContentProps> = ({
   console.log("Active tab:", activeTab);
 
   return (
-    <div className="flex-grow mb-4 overflow-auto">
+    <div className="flex-grow mb-4 min-h-0">
       <Tabs 
         value={activeTab} 
         onValueChange={onTabChange}
         className="h-full flex flex-col"
       >
-        <TabsList className="grid grid-cols-2 mb-2">
+        <TabsList className="grid grid-cols-2 mb-2 flex-shrink-0">
           <TabsTrigger value="editor" className="flex items-center">
             <Edit className="h-4 w-4 mr-2" />
             Editor
@@ -40,17 +40,17 @@ const NoteEditorContent: React.FC<NoteEditorContentProps> = ({
           </TabsTrigger>
         </TabsList>
         
-        <TabsContent value="editor" className="flex-grow h-full">
+        <TabsContent value="editor" className="flex-grow min-h-0 mt-0">
           <Textarea
             value={content || ""}
             onChange={onContentChange}
-            className="resize-none h-full min-h-[300px]"
+            className="resize-none w-full h-full min-h-[400px]"
             placeholder="Note content (supports markdown)"
           />
         </TabsContent>
         
-        <TabsContent value="preview" className="flex-grow h-full overflow-auto">
-          <div className="prose max-w-none h-full border rounded p-4 bg-gray-50 overflow-y-auto">
+        <TabsContent value="preview" className="flex-grow min-h-0 mt-0">
+          <div className="prose max-w-none h-full min-h-[400px] border rounded p-4 bg-gray-50 overflow-y-auto">
             {content && content.trim() ? (
               <ReactMarkdown>{content}</ReactMarkdown>
             ) : (
