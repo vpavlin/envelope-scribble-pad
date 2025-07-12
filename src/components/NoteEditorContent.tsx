@@ -44,13 +44,13 @@ const NoteEditorContent: React.FC<NoteEditorContentProps> = ({
           <Textarea
             value={content || ""}
             onChange={onContentChange}
-            className="resize-none w-full h-full"
+            className="resize-none w-full h-full min-h-[500px]"
             placeholder="Note content (supports markdown)"
           />
         </TabsContent>
         
         <TabsContent value="preview" className="flex-1 min-h-0 mt-0">
-          <div className="prose max-w-none h-full border rounded p-4 bg-gray-50 overflow-y-auto">
+          <div className="prose max-w-none h-full min-h-[500px] border rounded p-4 bg-gray-50 overflow-y-auto">
             {content && content.trim() ? (
               <ReactMarkdown>{content}</ReactMarkdown>
             ) : (
