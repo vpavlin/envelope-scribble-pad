@@ -7,11 +7,16 @@ export const useNFC = () => {
   const [isReading, setIsReading] = useState(false);
   const { toast } = useToast();
 
+  // Check if NFC is supported
+  const isNFCSupported = 'NDEFReader' in window;
+
+  console.log('NFC Support:', isNFCSupported, 'NDEFReader available:', 'NDEFReader' in window);
+
   const checkNFCSupport = () => {
-    if (!('NDEFReader' in window)) {
+    if (!isNFCSupported) {
       toast({
         title: "NFC not supported",
-        description: "NFC is not supported on this device or browser",
+        description: "NFC is not supported on this device or browser. Try using Chrome on Android.",
         variant: "destructive"
       });
       return false;
@@ -20,6 +25,8 @@ export const useNFC = () => {
   };
 
   const writeToNFC = async (url: string) => {
+    console.log('Attempting to write NFC with URL:', url);
+    
     if (!checkNFCSupport()) return false;
 
     setIsWriting(true);
@@ -104,6 +111,6 @@ export const useNFC = () => {
     readFromNFC,
     isWriting,
     isReading,
-    isNFCSupported: 'NDEFReader' in window
+    isNFCSupported
   };
 };

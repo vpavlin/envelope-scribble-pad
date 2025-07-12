@@ -17,20 +17,17 @@ const NFCWriter: React.FC<NFCWriterProps> = ({ noteId, noteTitle }) => {
     await writeToNFC(noteUrl);
   };
 
-  if (!isNFCSupported) {
-    return null; // Don't show the button if NFC is not supported
-  }
-
   return (
     <Button
       variant="outline"
       size="sm"
       onClick={handleWriteNFC}
-      disabled={isWriting}
+      disabled={isWriting || !isNFCSupported}
       className="flex items-center"
+      title={!isNFCSupported ? "NFC not supported on this device/browser" : "Write note URL to NFC tag"}
     >
-      <Nfc className={`h-4 w-4 mr-1 ${isWriting ? "animate-pulse" : ""}`} />
-      <span>{isWriting ? "Writing..." : "Write to NFC"}</span>
+      <Nfc className={`h-4 w-4 mr-1 ${isWriting ? "animate-pulse" : ""} ${!isNFCSupported ? "text-gray-400" : ""}`} />
+      <span>{isWriting ? "Writing..." : "Write NFC"}</span>
     </Button>
   );
 };
