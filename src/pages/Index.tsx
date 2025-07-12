@@ -28,9 +28,9 @@ const NoteView = () => {
   return (
     <ResizablePanelGroup direction="horizontal" className="flex-1 h-full">
       <ResizablePanel 
-        defaultSize={25} 
-        minSize={20} 
-        maxSize={40} 
+        defaultSize={30} 
+        minSize={25} 
+        maxSize={50} 
         className="bg-white h-full"
       >
         <NoteList />
@@ -191,9 +191,9 @@ const Index = () => {
   ]);
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50 md:flex-row">
+    <div className="flex h-screen bg-gray-50">
       <Sidebar />
-      <div className={`flex flex-col flex-1 ${isMobile ? "ml-0 pt-14" : "md:ml-64"}`}>
+      <div className={`flex flex-col flex-1 overflow-hidden ${isMobile ? "ml-0 pt-14" : "ml-64"}`}>
         <NoteView />
       </div>
     </div>
