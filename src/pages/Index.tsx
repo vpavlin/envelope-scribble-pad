@@ -163,11 +163,12 @@ const Index = () => {
             }
           }
         }
-        // Handle home route - clear both envelope and label
+        // Handle home route - clear all filters and active note
         else if (location.pathname === '/') {
-          console.log("Handling home route - clearing filters");
+          console.log("Handling home route - clearing all filters and active note");
           setActiveEnvelopeId(null);
           setActiveLabelId(null);
+          setActiveNoteId(null);
         }
       } catch (error) {
         console.error("Error in routing logic:", error);
