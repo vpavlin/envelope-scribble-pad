@@ -269,12 +269,16 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   useEffect(() => {
     if (dispatcher && isWakuInitialized()) {
       // Subscribe to note events
-      subscribe<Note>(MessageType.NOTE_ADDED, (note) => {
+      subscribe<Note>(MessageType.NOTE_ADDED, async (note) => {
         if (!syncProcessingIds.has(note.id)) {
+          console.log("Received synced note addition:", note);
           setNotes(prevNotes => {
             // Only add if the note doesn't already exist
             if (!prevNotes.some(n => n.id === note.id)) {
-              storage.addNote(note);
+              // Persist to storage immediately
+              storage.addNote(note).catch(error => {
+                console.error("Error persisting synced note:", error);
+              });
               return [...prevNotes, note];
             }
             return prevNotes;
@@ -282,14 +286,17 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
       });
 
-      subscribe<Note>(MessageType.NOTE_UPDATED, (receivedNote) => {
+      subscribe<Note>(MessageType.NOTE_UPDATED, async (receivedNote) => {
         if (!syncProcessingIds.has(receivedNote.id)) {
+          console.log("Received synced note update:", receivedNote);
           setNotes(prevNotes => {
             const localNote = prevNotes.find(n => n.id === receivedNote.id);
             
             // If we don't have this note locally, just add it
             if (!localNote) {
-              storage.updateNote(receivedNote);
+              storage.addNote(receivedNote).catch(error => {
+                console.error("Error persisting new synced note:", error);
+              });
               return [...prevNotes, receivedNote];
             }
             
@@ -340,7 +347,9 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 }
                 
                 // Use received note (the newer one) but with our local version history
-                storage.updateNote(localNoteWithHistory);
+                storage.updateNote(localNoteWithHistory).catch(error => {
+                  console.error("Error persisting conflict-resolved note:", error);
+                });
                 
                 // Notify user about the conflict
                 toast("This note was modified elsewhere. The most recent version is shown, but you can view history to see your changes.");
@@ -378,7 +387,9 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                   updatedLocalNote.previousVersions.push(remoteVersionRecord);
                 }
                 
-                storage.updateNote(updatedLocalNote);
+                storage.updateNote(updatedLocalNote).catch(error => {
+                  console.error("Error persisting updated local note:", error);
+                });
                 
                 // Notify user about the conflict
                 toast("Your local changes were kept. A conflicting remote version has been added to history.");
@@ -394,7 +405,9 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 previousVersions: localNote.previousVersions || [] // Preserve our local version history
               };
               
-              storage.updateNote(mergedNote);
+              storage.updateNote(mergedNote).catch(error => {
+                console.error("Error persisting merged note:", error);
+              });
               return prevNotes.map(n => n.id === mergedNote.id ? mergedNote : n);
             } 
             // Local version is newer, keep it
@@ -405,23 +418,29 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
       });
 
-      subscribe<string>(MessageType.NOTE_DELETED, (noteId) => {
+      subscribe<string>(MessageType.NOTE_DELETED, async (noteId) => {
         if (!syncProcessingIds.has(noteId)) {
+          console.log("Received synced note deletion:", noteId);
           setNotes(prevNotes => {
             const filteredNotes = prevNotes.filter(n => n.id !== noteId);
-            storage.deleteNote(noteId);
+            storage.deleteNote(noteId).catch(error => {
+              console.error("Error deleting synced note:", error);
+            });
             return filteredNotes;
           });
         }
       });
 
       // Subscribe to envelope events
-      subscribe<Envelope>(MessageType.ENVELOPE_ADDED, (envelope) => {
+      subscribe<Envelope>(MessageType.ENVELOPE_ADDED, async (envelope) => {
         if (!syncProcessingIds.has(envelope.id)) {
+          console.log("Received synced envelope addition:", envelope);
           setEnvelopes(prevEnvelopes => {
             // Only add if the envelope doesn't already exist
             if (!prevEnvelopes.some(e => e.id === envelope.id)) {
-              storage.addEnvelope(envelope);
+              storage.addEnvelope(envelope).catch(error => {
+                console.error("Error persisting synced envelope:", error);
+              });
               return [...prevEnvelopes, envelope];
             }
             return prevEnvelopes;
@@ -429,33 +448,42 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
       });
 
-      subscribe<Envelope>(MessageType.ENVELOPE_UPDATED, (envelope) => {
+      subscribe<Envelope>(MessageType.ENVELOPE_UPDATED, async (envelope) => {
         if (!syncProcessingIds.has(envelope.id)) {
+          console.log("Received synced envelope update:", envelope);
           setEnvelopes(prevEnvelopes => {
             const updatedEnvelopes = prevEnvelopes.map(e => e.id === envelope.id ? envelope : e);
-            storage.updateEnvelope(envelope);
+            storage.updateEnvelope(envelope).catch(error => {
+              console.error("Error persisting synced envelope update:", error);
+            });
             return updatedEnvelopes;
           });
         }
       });
 
-      subscribe<string>(MessageType.ENVELOPE_DELETED, (envelopeId) => {
+      subscribe<string>(MessageType.ENVELOPE_DELETED, async (envelopeId) => {
         if (!syncProcessingIds.has(envelopeId)) {
+          console.log("Received synced envelope deletion:", envelopeId);
           setEnvelopes(prevEnvelopes => {
             const filteredEnvelopes = prevEnvelopes.filter(e => e.id !== envelopeId);
-            storage.deleteEnvelope(envelopeId);
+            storage.deleteEnvelope(envelopeId).catch(error => {
+              console.error("Error deleting synced envelope:", error);
+            });
             return filteredEnvelopes;
           });
         }
       });
 
       // Subscribe to label events
-      subscribe<Label>(MessageType.LABEL_ADDED, (label) => {
+      subscribe<Label>(MessageType.LABEL_ADDED, async (label) => {
         if (!syncProcessingIds.has(label.id)) {
+          console.log("Received synced label addition:", label);
           setLabels(prevLabels => {
             // Only add if the label doesn't already exist
             if (!prevLabels.some(l => l.id === label.id)) {
-              storage.addLabel(label);
+              storage.addLabel(label).catch(error => {
+                console.error("Error persisting synced label:", error);
+              });
               return [...prevLabels, label];
             }
             return prevLabels;
@@ -463,21 +491,27 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
       });
 
-      subscribe<Label>(MessageType.LABEL_UPDATED, (label) => {
+      subscribe<Label>(MessageType.LABEL_UPDATED, async (label) => {
         if (!syncProcessingIds.has(label.id)) {
+          console.log("Received synced label update:", label);
           setLabels(prevLabels => {
             const updatedLabels = prevLabels.map(l => l.id === label.id ? label : l);
-            storage.updateLabel(label);
+            storage.updateLabel(label).catch(error => {
+              console.error("Error persisting synced label update:", error);
+            });
             return updatedLabels;
           });
         }
       });
 
-      subscribe<string>(MessageType.LABEL_DELETED, (labelId) => {
+      subscribe<string>(MessageType.LABEL_DELETED, async (labelId) => {
         if (!syncProcessingIds.has(labelId)) {
+          console.log("Received synced label deletion:", labelId);
           setLabels(prevLabels => {
             const filteredLabels = prevLabels.filter(l => l.id !== labelId);
-            storage.deleteLabel(labelId);
+            storage.deleteLabel(labelId).catch(error => {
+              console.error("Error deleting synced label:", error);
+            });
             return filteredLabels;
           });
         }
