@@ -4,8 +4,6 @@ import { MessageType } from "@/types/note";
 import {
   createLightNode,
 } from "@waku/sdk";
-import { wakuPeerExchangeDiscovery } from "@waku/discovery";
-import { derivePubsubTopicsFromNetworkConfig } from "@waku/utils";
 import { Identity } from "./identity";
 
 export type SyncConfig = {
@@ -81,26 +79,11 @@ export const initializeWaku = async (password: string): Promise<Dispatcher> => {
         // Derive content topic from password
         const contentTopic = deriveContentTopic(password);
         
-        // Initialize the Waku dispatcher
-        const wakuClusterId = localStorage.getItem(WAKU_CLUSTER_ID_STORAGE_KEY) || DEFAULT_WAKU_CLUSTER_ID;
-        const wakuShardId = localStorage.getItem(WAKU_SHARD_ID) || DEFAULT_WAKU_SHARD_ID;
-        let libp2p = undefined;
-        const networkConfig =  {clusterId: parseInt(wakuClusterId), shards: [parseInt(wakuShardId)]};
-        
-        if (wakuClusterId != "1") {
-            libp2p = {
-                peerDiscovery: [
-                  wakuPeerExchangeDiscovery(derivePubsubTopicsFromNetworkConfig(networkConfig))
-                ]
-              };
-        }
         const node = await createLightNode({
-            networkConfig: networkConfig,
-            defaultBootstrap: false,
-            bootstrapPeers: bootstrapNodes,
-            numPeersToUse: 3,
-            libp2p: libp2p,
+          defaultBootstrap: true,
+          bootstrapPeers: bootstrapNodes,
         });
+        await node.start();
     
         dispatcher = await getDispatcher(node, contentTopic, "notes", false); //use getDispatcher!
         
